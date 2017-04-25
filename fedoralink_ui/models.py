@@ -1,4 +1,3 @@
-from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 # Create your models here.
@@ -7,9 +6,11 @@ from fedoralink.fedorans import CESNET_TYPE, CESNET
 from fedoralink.indexer.fields import IndexedTextField, IndexedField, IndexedLinkedField
 from fedoralink.indexer.models import IndexableFedoraObject
 
+
 class AdministrationCollection(IndexableFedoraObject):
     class Meta:
         rdf_types = (CESNET_TYPE.AdministrationCollection,)
+
 
 class ResourceTypeCollection(IndexableFedoraObject):
     class Meta:
@@ -78,7 +79,6 @@ class ResourceFieldType(IndexableFedoraObject):
 
 
 class ResourceCollectionType(ResourceType):
-
     template_search = IndexedLinkedField(CESNET_TYPE.template_search, Template,
                                          verbose_name=_('Templates for list/search view'), multi_valued=True)
 
@@ -87,16 +87,17 @@ class ResourceCollectionType(ResourceType):
                                                            'used for example for search or resource creation'))
 
     primary_subcollection_type = IndexedLinkedField(CESNET_TYPE.primary_subcollection_type, ResourceType,
-                                            verbose_name=_('Primary subcollection type, '
-                                                           'used for example for search or resource creation'))
+                                                    verbose_name=_('Primary subcollection type, '
+                                                                   'used for example for search or resource creation'))
 
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceCollectionType,)
 
-class DCTermsCollection (DCObject):
 
+class DCTermsCollection(DCObject):
     class Meta:
         rdf_types = (CESNET.DCTermsCollection,)
 
-class Controller():
-    nieco = 'nieco'
+
+class Controller:
+    nieco = 'nieco'  # TODO: create Controller
