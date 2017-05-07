@@ -242,6 +242,10 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
             val = value
             # noinspection PyBroadException
             try:
+                # handle 2016-06-03 00:00:00
+                if val[-1] != '0':
+                    val = datetime.datetime.strptime(val, '%Y-%m-%dT%H:%M:%S')
+                    return val
                 # handle 2005-06-08 00:00:00+00:00
                 if val[-3] == ':':
                     val = val[:-3] + val[-2:]
