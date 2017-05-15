@@ -58,6 +58,8 @@ class ResourceFieldType(IndexableFedoraObject):
 
     required    = IndexedBooleanField(CESNET.required, verbose_name=_('Required'))
 
+    help_text   = IndexedTextField(CESNET.help_text, verbose_name=_('Help text'))
+
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceFieldType,)
 
