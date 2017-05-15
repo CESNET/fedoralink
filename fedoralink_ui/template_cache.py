@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.db.models import Q
 
 from fedoralink.utils import fullname
-from fedoralink_ui.models import ResourceType, ResourceFieldType, ResourceCollectionType
+from fedoralink_ui.models import ResourceType, ResourceFieldType
 
 NONE_CACHE_VALUE = "this is a placeholder that is used instead of None"
 

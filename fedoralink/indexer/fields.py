@@ -208,6 +208,31 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
         return wrap_multi_valued_field(self, kwargs, django.db.models.IntegerField, super().formfield(**defaults))
 
 
+class IndexedBooleanField(IndexedField, django.db.models.BooleanField):
+
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None):
+        super().__init__(rdf_name, required=required,
+                         verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
+        # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
+        django.db.models.IntegerField.__init__(self, verbose_name=verbose_name, help_text=help_text)
+
+    def convert_to_rdf(self, value):
+        if value is None:
+            return []
+        return Literal(value, datatype=XSD.boolean)
+
+    def convert_from_rdf(self, value):
+        return value.value
+
+    def formfield(self, **kwargs):
+        defaults = {}
+
+        defaults.update(kwargs)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.BooleanField, super().formfield(**defaults))
+
+
 class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
     def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
