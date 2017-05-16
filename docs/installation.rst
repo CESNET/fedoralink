@@ -44,6 +44,9 @@ Installation and Configuration
         'fedoralink.db.routers.FedoraRouter',
     ]
 
+   This step is optional but if the router is not registered you will have to route the models
+   to fedora repository yourself and namespace-based routing will not be available.
+
 5. Check that the setup works::
 
     export DJANGO_SETTINGS_MODULE=testfedora.settings
