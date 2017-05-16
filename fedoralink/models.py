@@ -10,6 +10,7 @@ from rdflib import Literal
 from rdflib.namespace import DC, RDF, XSD
 from rdflib.term import URIRef
 
+from fedoralink.db.utils import rdf2search
 from fedoralink.fedorans import ACL, CESNET, NAMESPACES
 from .fedorans import FEDORA, EBUCORE
 from .manager import FedoraManager
@@ -18,6 +19,7 @@ from .type_manager import FedoraTypeManager
 from .utils import OrderableModelList
 
 log = logging.getLogger('fedoralink.models')
+
 
 
 class FedoraFieldOptions:
@@ -31,22 +33,8 @@ class FedoraFieldOptions:
                 raise AttributeError('Please use rdf_name in FedoraFieldOptions constructor')
             self.rdf_name = getattr(rdf_namespace, self.field.name)
 
-        self.search_name = FedoraFieldOptions._rdf2search(self.rdf_name)
+        self.search_name = rdf2search(self.rdf_name)
 
-    @staticmethod
-    def _rdf2search(rdf_name):
-        tmp_search_name = str(rdf_name)
-        for k, v in NAMESPACES.items():
-            if tmp_search_name.startswith(v):
-                tmp_search_name = '%s:%s' % (k, tmp_search_name[len(v):])
-        search_name = []
-        for rev in re.findall('(([a-zA-Z0-9]+)|([^a-zA-Z0-9]))', tmp_search_name):
-            if rev[1]:
-                search_name.append(rev[1])
-            else:
-                search_name.append('_%x_' % ord(rev[2][0]))
-
-        return ''.join(search_name)
 
 
 class FedoraOptions:

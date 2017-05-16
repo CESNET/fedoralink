@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from django.db.models.sql import compiler
 
+from fedoralink.db.connection import FedoraWithElasticConnection
 from .elasticsearch_connection import ElasticsearchMixin
 
 integer_types = (int,)
@@ -34,7 +35,10 @@ class SQLCompiler(compiler.SQLCompiler):
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
 
     def as_sql(self, with_limits=True, with_col_aliases=False, subquery=False):
-        return ElasticsearchMixin.get_insert_representation(self.query, self)
+        return FedoraWithElasticConnection.get_insert_representation(self.query, self)
+
+    def prepare_value(self, field, value):
+        return super().prepare_value(field, value)
 
 
 class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):

@@ -74,8 +74,14 @@ DATABASES = {
         'ENGINE': 'fedoralink.db',
         'REPO_URL': 'http://127.0.0.1:8080/fcrepo/rest',
         'SEARCH_URL': 'http://127.0.0.1:9200/fedoralink-test',
-        'USERNAME': 'cis_repo',  # 'oarepo',#'admin',#'cis_repo',#
-        'PASSWORD': '5SKJ4KW6NyxdSNwtxC8uoE9VAPVKJ37qLQ3DTJR6Wvz6rHSh'
+        'USERNAME': '',
+        'PASSWORD': '',
+        'CONNECTION_OPTIONS': {
+            'namespace': {
+                'namespace': '',
+                'prefix': 'test'
+            }
+        }
     }
 }
 

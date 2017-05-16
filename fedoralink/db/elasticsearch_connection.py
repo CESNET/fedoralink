@@ -1,12 +1,12 @@
 import json
 import logging
 import urllib.parse
-from collections import OrderedDict
 
 import django.db.models.fields as django_fields
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
+from fedoralink.db.utils import rdf2search
 from fedoralink.models import FedoraOptions
 from . import FedoraError
 
@@ -17,19 +17,58 @@ class IndexMappingError(FedoraError):
     pass
 
 
-class ElasticQuery:
-    def __init__(self, query):
+class SearchQuery:
+    def __init__(self, query, columns, start, end):
         self.query = query
+        self.columns = columns
+        self.start = start
+        self.end = end
+
+    @property
+    def count(self):
+        if self.start is None or self.end is None:
+            return None
+        return self.end - self.start
 
 
-class FedoraInsert:
-    def __init__(self, query):
-        self.query = query
+class InsertQuery:
+    def __init__(self, objects):
+        self.objects = objects
+
+
+class InsertScanner:
+    def __init__(self, data):
+        self.data = data
+
+    def __iter__(self):
+        return iter(self.data)
+
+
+class SelectScanner:
+    def __init__(self, scanner, columns, count):
+        self.scanner = scanner
+        self.columns = columns
+        self.count = count
+        self.iter    = iter(self.scanner)
+
+    def __next__(self):
+        if self.count:
+            self.count -= 1
+            if not self.count:
+                raise StopIteration()
+
+        data = next(self.iter)
+        src = data['_source']
+        return [
+            src[x[1]] for x in self.columns
+        ]
 
 
 class ElasticsearchMixin(object):
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         urls = kwargs['elasticsearch_url']
+        self.namespace_config = kwargs['namespace_config']
 
         if isinstance(urls, str):
             urls = [urls]
@@ -49,6 +88,9 @@ class ElasticsearchMixin(object):
                 "port": urllib.parse.urlsplit(x).port
             } for x in urls
         ])
+
+        if self.namespace_config.prefix:
+            self.elasticsearch_index_name += '_%s' % rdf2search(self.namespace_config.prefix)
 
         if not self.elasticsearch.indices.exists(self.elasticsearch_index_name):
             self.elasticsearch.indices.create(index=self.elasticsearch_index_name)
@@ -174,48 +216,30 @@ class ElasticsearchMixin(object):
         if where.children:
             raise NotImplementedError(".filter(), .exclude() not implemented")
 
-        return ElasticQuery(query), {}
+        return SearchQuery(query, [
+            (
+                x[0].field.fedora_options.rdf_name,
+                x[0].field.fedora_options.search_name
+            ) for x in compiler.select
+        ], compiler.query.low_mark, compiler.query.high_mark), {}
 
-    def execute(self, query, params):
-        if isinstance(query, ElasticQuery):
-            return elasticsearch.helpers.scan(
+    def execute_search(self, query):
+        return SelectScanner(
+            elasticsearch.helpers.scan(
                 self.elasticsearch,
                 query=query.query,
                 scroll=u'1m',
                 preserve_order=True,
-                index=self.elasticsearch_index_name)
-        elif isinstance(query, FedoraInsert):
-            return self.execute_insert(query.query)
-        else:
-            raise NotImplementedError('This type of query is not yet implemented')
+                index=self.elasticsearch_index_name,
+                from_=query.start),
+            query.columns, query.count)
 
-    def execute_insert(self, query):
-        raise NotImplementedError('Insert not yet implemented')
-
-    @staticmethod
-    def get_insert_representation(query, compiler):
-        opts = query.get_meta()
-
-        ElasticsearchMixin._prepare_fedora_options(opts)
-
-        has_fields = bool(query.fields)
-        fields = query.fields if has_fields else [opts.pk]
-
-        if has_fields:
-            value_rows = [
-                {
-                    'doc_type': opts.label,
-                    'fields': {
-                        field.column: compiler.prepare_value(field, compiler.pre_save_val(field, obj))
-                            for field in fields
-                    }
-                }
-                for obj in query.objs
-            ]
-        else:
-            value_rows = [{} for _ in query.objs]
-
-        yield FedoraInsert(value_rows), {}
+    def index_resources(self, query, ids):
+        for obj, obj_id in zip(query, ids):
+            serialized_object = {k[1]: v for k, v in obj['fields'].items()}
+            self.elasticsearch.index(index=self.elasticsearch_index_name,
+                                     doc_type=obj['doc_type'],
+                                     id=obj_id, body=serialized_object)
 
     @staticmethod
     def _prepare_fedora_options(opts):

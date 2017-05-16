@@ -9,7 +9,7 @@ from django.db.backends.base.validation import BaseDatabaseValidation
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from fedoralink.db import FedoraError
-from fedoralink.db.connection import FedoraConnection
+from fedoralink.db.connection import FedoraWithElasticConnection
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -70,6 +70,8 @@ class DatabaseCursor(object):
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
+    can_return_ids_from_bulk_insert = True
+    can_return_id_from_insert = True
     pass
 
 
@@ -95,6 +97,10 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def no_limit_value(self):
         return -1
+
+    # do not transform datetime to string, just return the datetime - both fedora and elastic can handle it
+    def adapt_datetimefield_value(self, value):
+        return value
 
 
 class DatabaseValidation(BaseDatabaseValidation):
@@ -201,7 +207,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             self.connection = None
 
     def get_connection_params(self):
-        return {
+        ret = {
             'repo_url': self.settings_dict['REPO_URL'],
             'search_url': self.settings_dict.get('SEARCH_URL'),
             'username': self.settings_dict['USERNAME'],
@@ -211,12 +217,20 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 for k, v in self.settings_dict.get('CONNECTION_OPTIONS', {}).items()
             },
         }
+        # if there is no namespace config, create a new default one
+        if 'namespace' not in ret['options']:
+            ret['options']['namespace'] = NamespaceConfig()
+        else:
+            ret['options']['namespace'] = NamespaceConfig(**ret['options']['namespace'])
+
+        return ret
 
     def get_new_connection(self, conn_params):
-        connection = FedoraConnection(fcrepo_url        = conn_params['repo_url'],
-                                      elasticsearch_url = conn_params['search_url'],
-                                      fcrepo_username   = conn_params['username'],
-                                      fcrepo_password   = conn_params['password'])
+        connection = FedoraWithElasticConnection(fcrepo_url        = conn_params['repo_url'],
+                                                 elasticsearch_url = conn_params['search_url'],
+                                                 fcrepo_username   = conn_params['username'],
+                                                 fcrepo_password   = conn_params['password'],
+                                                 namespace_config  = conn_params['options']['namespace'])
 
         options = conn_params['options']
         for opt, value in options.items():
@@ -241,3 +255,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _start_transaction_under_autocommit(self):
         pass
+
+
+class NamespaceConfig:
+    def __init__(self, namespace='', prefix=''):
+        self.namespace = namespace
+        self.prefix = prefix
+
+    def default_parent_for_inserted_object(self, inserted_object):
+        return inserted_object['doc_type']

@@ -12,3 +12,4 @@ fedoralink.egg-info
 fedora_group_plugin/target
 *.iml
 /fedoralink/tests/test.py
+docs/_build
