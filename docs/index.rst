@@ -10,6 +10,7 @@ Welcome to Fedoralink's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installation
    usage
    architecture
 
