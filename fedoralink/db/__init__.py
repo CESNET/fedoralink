@@ -1,0 +1,3 @@
+class FedoraError(Exception):
+    pass
+

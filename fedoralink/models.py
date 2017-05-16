@@ -1,16 +1,16 @@
 import inspect
 import logging
+import re
+from io import BytesIO
 
 import django.dispatch
 import rdflib
-from io import BytesIO
-
 from django.apps import apps
 from rdflib import Literal
 from rdflib.namespace import DC, RDF, XSD
 from rdflib.term import URIRef
 
-from fedoralink.fedorans import ACL
+from fedoralink.fedorans import ACL, CESNET, NAMESPACES
 from .fedorans import FEDORA, EBUCORE
 from .manager import FedoraManager
 from .rdfmetadata import RDFMetadata
@@ -18,6 +18,71 @@ from .type_manager import FedoraTypeManager
 from .utils import OrderableModelList
 
 log = logging.getLogger('fedoralink.models')
+
+
+class FedoraFieldOptions:
+
+    def __init__(self, field=None, rdf_namespace=None, rdf_name=None):
+        self.field = field
+        if rdf_name:
+            self.rdf_name = rdf_name
+        else:
+            if not self.field:
+                raise AttributeError('Please use rdf_name in FedoraFieldOptions constructor')
+            self.rdf_name = getattr(rdf_namespace, self.field.name)
+
+        self.search_name = FedoraFieldOptions._rdf2search(self.rdf_name)
+
+    @staticmethod
+    def _rdf2search(rdf_name):
+        tmp_search_name = str(rdf_name)
+        for k, v in NAMESPACES.items():
+            if tmp_search_name.startswith(v):
+                tmp_search_name = '%s:%s' % (k, tmp_search_name[len(v):])
+        search_name = []
+        for rev in re.findall('(([a-zA-Z0-9]+)|([^a-zA-Z0-9]))', tmp_search_name):
+            if rev[1]:
+                search_name.append(rev[1])
+            else:
+                search_name.append('_%x_' % ord(rev[2][0]))
+
+        return ''.join(search_name)
+
+
+class FedoraOptions:
+
+    def __init__(self, clz, rdf_namespace=CESNET, rdf_types=None, field_options=None):
+        self.clz           = clz
+        self.rdf_namespace = rdf_namespace
+        self.rdf_types     = rdf_types
+
+        for parent in clz._meta.parents:
+            if not hasattr(parent, '_meta'):
+                continue
+            if not hasattr(parent._meta, 'fedora_options'):
+                FedoraOptions(parent, self.rdf_namespace)
+
+        if not self.rdf_types:
+            self.rdf_types = [
+                getattr(self.rdf_namespace, clz._meta.label)
+            ]
+
+        for fld in clz._meta.fields:
+            if not hasattr(fld, 'fedora_options'):
+                if field_options and fld.name in field_options:
+                    fld.fedora_options = field_options[fld.name]
+                    fld.fedora_options.field = fld
+                else:
+                    fld.fedora_options = FedoraFieldOptions(field=fld, rdf_namespace=self.rdf_namespace)
+            print(fld)
+
+
+def fedora(namespace=None, rdf_types=None, field_options=None):
+    def annotate(clz):
+        clz._meta.fedora_options = \
+            FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types, field_options=field_options)
+        return clz
+    return annotate
 
 
 def get_from_classes(clazz, class_var):
