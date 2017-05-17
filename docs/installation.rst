@@ -1,7 +1,10 @@
 Installation and Configuration
 ==============================
 
-1. Install fedoralink::
+1. Install fedoralink:
+
+.. code-block:: bash
+    :emphasize-lines: 4
 
     virtualenv testfedora-venv -p python3
     source testfedora-venv/bin/activate
