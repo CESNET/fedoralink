@@ -15,7 +15,7 @@ where the model is too complex/variable to be meaningfully represented as django
 Every object in Fedora can be accessed via FedoraObject class.
 Instances of the object have the following properties:
 
- * ``id`` gets a mapping of URL of a Fedora object into an integer. For details see :ref:`mapping-ids`.
+ * ``id`` is the result of a mapping of Fedora object's URL into an integer. For details see :ref:`mapping-ids`.
  * ``fedora_id`` is the URL of a Fedora object.
  * ``fedora_meta`` is a dictionary-like object with string keys and values represented as a list of rdflib Literal classes.
  * ``fedora_children`` is a manager returning child nodes of the current resource.

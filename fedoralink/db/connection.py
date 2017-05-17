@@ -1,5 +1,6 @@
 import logging
 
+from fedoralink.idmapping import url2id
 from .elasticsearch_connection import ElasticsearchMixin, InsertScanner, SearchQuery, InsertQuery
 from .fedora_connection import FedoraMixin
 
@@ -20,7 +21,7 @@ class FedoraWithElasticConnection(ElasticsearchMixin, FedoraMixin):
     def execute_insert(self, query):
         ids = FedoraMixin.create_resources(self, query)
         ElasticsearchMixin.index_resources(self, query, ids)
-        return InsertScanner([[self.string2int(object_id)] for object_id in ids])
+        return InsertScanner([[url2id(object_id)] for object_id in ids])
 
     def execute(self, query, params):
         if isinstance(query, SearchQuery):
@@ -58,19 +59,4 @@ class FedoraWithElasticConnection(ElasticsearchMixin, FedoraMixin):
 
         yield InsertQuery(value_rows), {}
 
-    @staticmethod
-    def string2int(x):
-        ret = 0
-        for d in x.encode('utf-8'):
-            ret = ret * 256 + int(d)
-        return ret
-
-    @staticmethod
-    def int2string(x):
-        ret = []
-        while x:
-            ret.append(chr(x % 256))
-            x = x // 256
-        ret.reverse()
-        return bytes(ret).decode('utf-8')
 
