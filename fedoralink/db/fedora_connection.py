@@ -19,6 +19,7 @@ from fedoralink.db.rdf import RDFMetadata
 # import delegated_requests to wrap around
 from fedoralink.idmapping import url2id
 from .delegated_requests import get, post, put, delete
+from django.db import models
 
 log = logging.getLogger(__file__)
 
@@ -201,10 +202,18 @@ class FedoraConnection(object):
         ret = []
         for rdf_name, search_name, field_name, fedora_col, django_field in columns:
             if django_field == model._meta.pk:
-                # convert id ...
                 ret.append(url2id(obj.id))
             elif isinstance(fedora_col, FedoraIdColumn):
                 ret.append(obj.id)
+            elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField):
+                field_data = obj[field_name]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(field_data[0].value)
             else:
                 raise NotImplementedError('Returning anything else than id is not implemented yet')
         return ret
