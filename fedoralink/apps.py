@@ -2,6 +2,8 @@
 from django.apps import AppConfig
 from django.utils.translation import ugettext_lazy as _
 
+from fedoralink.idmapping import id2url
+
 
 def upload_binary_files(sender, **kwargs):
     from fedoralink.models import UploadedFileStream
@@ -34,6 +36,15 @@ def upload_binary_files(sender, **kwargs):
         instance.save()
 
 
+def fix_fedora_id(sender, **kwargs):
+    inst = kwargs['instance']
+    created = kwargs['created']
+    if not created:
+        return              # URI does not change on updates ...
+    if hasattr(sender._meta, 'fedora_options'):
+        inst.fedora_id = id2url(inst.id)
+
+
 class ApplicationConfig(AppConfig):
     name = 'fedoralink'
     verbose_name = _("fedoralink")
@@ -54,3 +65,6 @@ class ApplicationConfig(AppConfig):
 
         from fedoralink.db.lookups import add_vendor_to_lookups
         add_vendor_to_lookups()
+
+        from django.db.models.signals import post_save
+        post_save.connect(fix_fedora_id, dispatch_uid='fix_fedora_id', weak=False)

@@ -30,7 +30,7 @@ class FedoraWithElasticConnection:
     def execute_insert(self, query):
         ids = self.fedora_connection.create_resources(query)
         self.elasticsearch_connection.index_resources(query, ids)
-        return InsertScanner([[url2id(object_id)] for object_id in ids])
+        return InsertScanner([url2id(object_id) for object_id in ids])
 
     # noinspection PyUnusedLocal
     def execute(self, query, params=None):
@@ -91,6 +91,7 @@ class FedoraWithElasticConnection:
         has_fields = bool(query.fields)
         fields = query.fields if has_fields else [opts.pk]
 
+        # TODO: rdf_type
         if has_fields:
             value_rows = [
                 {
@@ -99,7 +100,7 @@ class FedoraWithElasticConnection:
                     'fields': {
                         (field.fedora_options.rdf_name, field.fedora_options.search_name):
                             compiler.prepare_value(field, compiler.pre_save_val(field, obj))
-                        for field in fields
+                        for field in fields if hasattr(field, 'fedora_options')
                     }
                 }
                 for obj in query.objs

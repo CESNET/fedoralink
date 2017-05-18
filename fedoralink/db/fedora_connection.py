@@ -143,7 +143,7 @@ class FedoraConnection(object):
         tombstone_url += 'fcr:tombstone'
         delete(tombstone_url, auth=self._get_auth())
 
-    def get_object(self, model, object_id, fetch_child_metadata=False):
+    def get_object(self, object_id, fetch_child_metadata=False):
         """
         Fetches the resource with the given object_id parameter
 
@@ -186,13 +186,16 @@ class FedoraConnection(object):
 
         except RequestException as e:
             log.exception("Error in getting object with url %s", object_id)
-            raise getattr(model, 'DoesNotExist')('Resource with url %s does not exist' % object_id)
+            raise
 
     def execute_search_by_pk(self, query):
         # get the object from fedora
-        obj = next(self.get_object(query.query.model, query.pk))
-        obj = self.convert_to_row(query.query.model, get_column_ids(query.compiler.select), obj)
-        return FedoraResourceScanner([obj])
+        try:
+            obj = next(self.get_object(query.pk))
+            obj = self.convert_to_row(query.query.model, get_column_ids(query.compiler.select), obj)
+            return FedoraResourceScanner([obj])
+        except RepositoryException:
+            return FedoraResourceScanner([])
 
     def convert_to_row(self, model, columns, obj):
         ret = []
