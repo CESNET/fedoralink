@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db.models.sql import compiler
+from django.db.models.sql.constants import SINGLE
 
 from fedoralink.db.connection import FedoraWithElasticConnection
 from .elasticsearch_connection import ElasticsearchConnection
@@ -15,17 +16,8 @@ class SQLCompiler(compiler.SQLCompiler):
             return cursor.connection.get_query_representation(self.query, self, self.connection)
 
     def has_results(self):
-        import inspect
-        iterator = self.results_iter()
-        if inspect.isgenerator(iterator):
-            try:
-                iterator.next()
-                return True
-            except:
-                return False
-        else:
-            return False
-
+        ret = self.execute_sql(SINGLE)
+        return ret is not None
 
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
 

@@ -68,6 +68,9 @@ class FedoraConnection(object):
     def _create_object_from_metadata(self, parent_url, metadata, slug):
         payload = str(metadata)
         log.info('Creating child in %s', parent_url)
+        # print('Creating child in %s, slug %s' % ( parent_url, slug))
+        # import traceback
+        # traceback.print_stack()
         log.debug("    payload %s", payload)
         try:
             headers = {'Content-Type': 'text/turtle; encoding=utf-8'}
