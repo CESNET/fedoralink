@@ -6,10 +6,10 @@ import django.db.models.fields as django_fields
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
-from fedoralink.db.lookups import get_column_ids
+from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
-from fedoralink.models import FedoraResourceUrlField
+from fedoralink.models import FedoraResourceUrlField, FedoraObject
 from . import FedoraError
 
 log = logging.getLogger(__file__)
@@ -122,7 +122,7 @@ class ElasticsearchConnection(object):
                 # TODO: check if there is a fulltext annotation there
                 # TODO: store=True?
                 field_mapping = {
-                    'type': 'text',
+                    'type': 'keyword',
                 }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
@@ -162,16 +162,26 @@ class ElasticsearchConnection(object):
         model = query.model
         where = query.where
 
-        query = {
-            'query': {
+        query_parts = []
+        if type(model) != FedoraObject:
+            query_parts.append({
                 'type': {
                     'value': model._meta.db_table
                 }
-            }
-        }
+            })
 
         if where.children:
-            raise NotImplementedError(".filter(), .exclude() not implemented")
+            tree, params = compiler.compile(where)
+            query_parts.append(convert_tree_to_elastic(tree))
+
+        query = {
+            'query': {
+                'bool': {
+                    'must': query_parts
+                }
+            }
+        }
+        print(json.dumps(query, indent=4))
 
         return SearchQuery(query, get_column_ids(compiler.select),
                            compiler.query.low_mark, compiler.query.high_mark), {}
@@ -200,3 +210,38 @@ class ElasticsearchConnection(object):
         if self.elasticsearch.indices.exists(self.elasticsearch_index_name):
             self.elasticsearch.indices.delete(index=self.elasticsearch_index_name)
 
+
+def convert_tree_to_elastic(tree):
+    if isinstance(tree, Operation):
+        if tree.type == 'AND':
+            return {
+                'bool': {
+                    'must': [
+                        convert_tree_to_elastic(x) for x in tree.operands
+                    ]
+                }
+            }
+        if tree.type == 'OR':
+            return {
+                'bool': {
+                    'should': [
+                        convert_tree_to_elastic(x) for x in tree.operands
+                    ],
+                    'minimum_should_match': 1
+                }
+            }
+        if tree.type == 'exact':
+            rhs = tree.operands[1]
+            if isinstance(rhs, Node):
+                rhs = convert_tree_to_elastic(rhs)
+            return {
+                'term': {
+                    convert_tree_to_elastic(tree.operands[0]) : rhs
+                }
+            }
+
+        raise NotImplementedError('Conversion of operation type %s to elasticsearch not yet implemented' % tree.type)
+    elif isinstance(tree, Column):
+        return tree.search_name
+    else:
+        raise NotImplementedError('Conversion of tree node %s to elasticsearch not yet implemented' % tree)

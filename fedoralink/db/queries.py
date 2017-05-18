@@ -1,3 +1,8 @@
+from fedoralink.db.lookups import FedoraIdColumn
+from fedoralink.idmapping import url2id
+from fedoralink.models import FedoraResourceUrlField
+
+
 class SearchQuery:
     def __init__(self, query, columns, start, end):
         self.query = query
@@ -52,9 +57,15 @@ class SelectScanner:
         data = next(self.iter)
         src = data['_source']
         return [
-            src[x[1]] for x in self.columns
+            self.get_column_data(data, src, x) for x in self.columns
         ]
 
+    def get_column_data(self, data, source, column):
+        if column[4] == column[4].model._meta.pk:
+            return url2id(data['_id'])
+        if isinstance(column[4], FedoraResourceUrlField):
+            return data['_id']
+        return source[column[1]]
 
 class FedoraResourceScanner:
     def __init__(self, data):

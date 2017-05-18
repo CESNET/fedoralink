@@ -37,3 +37,11 @@ class TestSimpleStoreFetch(TransactionTestCase):
         o2 = Simple.objects.get(fedora_id=o1.fedora_id)
         self.assertEqual(o1.text, o2.text, 'The text of the stored and retrieved objects must match')
         pass
+
+    def test_query_by_string(self):
+        o1 = Simple.objects.create(text='Hello world 1')
+        o2 = Simple.objects.get(text='Hello world 1')
+        self.assertEqual(o1.text, o2.text, 'The text of the stored and retrieved objects must match')
+        self.assertEqual(o1.id, o2.id, 'The id of the stored and retrieved objects must match')
+        self.assertEqual(o1.fedora_id, o2.fedora_id, 'The fedora_id of the stored and retrieved objects must match')
+

@@ -1,5 +1,8 @@
 from django.db.models import Field
 from django.db.models.expressions import Col
+from django.db.models.sql.where import WhereNode
+
+from fedoralink.db.patches.where_patch import where_as_fedoralink
 
 
 def unimplemented_lookup(self, compiler, connection):
@@ -11,13 +14,24 @@ class Node:
 
 
 class Column(Node):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, rdf_name, search_name):
+        self.rdf_name = rdf_name
+        self.search_name = search_name
+
+
+class Operation(Node):
+    def __init__(self, type, *operands):
+        self.type = type
+        self.operands = list(operands)
+
+    def join(self, arr):
+        self.operands.extend(arr)
+        return self
 
 
 class FedoraIdColumn(Column):
     def __init__(self):
-        super().__init__('_id')
+        super().__init__('_id', '_id')
 
 
 def col_lookup(self, compiler, connection):
@@ -29,7 +43,15 @@ def col_lookup(self, compiler, connection):
         if field.column == 'fedora_id':
             return FedoraIdColumn(), []
     fedora_field_options = field.fedora_options
-    return Column(fedora_field_options.rdf_name), []
+    return Column(fedora_field_options.rdf_name, fedora_field_options.search_name), []
+
+
+def exact_lookup(self, compiler, connection):
+    lhs, lhs_params = self.process_lhs(compiler, connection)
+    rhs, rhs_params = self.process_rhs(compiler, connection)
+    if lhs_params or rhs_params:
+        raise NotImplementedError('Params in lookups are not supported')
+    return Operation(self.lookup_name, lhs, rhs), []
 
 
 def get_db_prep_lookup(self, value, connection, orig_lookup):
@@ -46,10 +68,14 @@ def patch_get_db_prep_lookup(lookup):
 
 def add_vendor_to_lookups():
     for lookup in Field.class_lookups.values():
-        lookup.as_fedoralink = unimplemented_lookup
+        if lookup.lookup_name + '_lookup' in globals():
+            lookup.as_fedoralink = globals()[lookup.lookup_name + '_lookup']
+        else:
+            lookup.as_fedoralink = unimplemented_lookup
         patch_get_db_prep_lookup(lookup)
 
     Col.as_fedoralink = col_lookup
+    WhereNode.as_fedoralink = where_as_fedoralink
 
 
 def get_column_ids(columns):
@@ -74,7 +100,7 @@ def get_column_ids(columns):
             (
                 rdf_name,
                 search_name,
-                fedora_col.name,
+                fedora_col.rdf_name,
                 fedora_col,
                 django_field
             ))

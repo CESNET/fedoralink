@@ -13,6 +13,7 @@ from django.db.backends.base.validation import BaseDatabaseValidation
 from fedoralink.db import FedoraError
 from fedoralink.db.connection import FedoraWithElasticConnection
 from fedoralink.db.cursor import DatabaseCursor
+from fedoralink.db.lookups import Operation
 
 log = logging.getLogger(__file__)
 
@@ -59,6 +60,19 @@ class IdentityCast(object):
         return other
 
 
+class ConstructorCast(object):
+    def __init__(self, clz):
+        self.clz = clz
+
+    def __mod__(self, other):
+        return self.clz(other)
+
+
+class NotCast(object):
+    def __mod__(self, other):
+        return Operation('not', other)
+
+
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "fedoralink.db.compiler"
 
@@ -77,6 +91,16 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def lookup_cast(self, lookup_type, internal_type=None):
         return IdentityCast()
+
+    def logical_binary_operation_delimiter_sql(self):
+        return ConstructorCast(Operation)
+
+    def logical_not_operation_delimiter_sql(self):
+        return NotCast()
+
+    def logical_group_delimiter_sql(self):
+        return IdentityCast()
+
 
 class DatabaseValidation(BaseDatabaseValidation):
     pass
