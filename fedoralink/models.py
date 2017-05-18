@@ -1,17 +1,18 @@
 import inspect
 import logging
-import re
 from io import BytesIO
 
 import django.dispatch
 import rdflib
 from django.apps import apps
+from django.db import models
+from django.utils.translation import ugettext_lazy as _
 from rdflib import Literal
 from rdflib.namespace import DC, RDF, XSD
 from rdflib.term import URIRef
 
 from fedoralink.db.utils import rdf2search
-from fedoralink.fedorans import ACL, CESNET, NAMESPACES
+from fedoralink.fedorans import ACL, CESNET
 from .fedorans import FEDORA, EBUCORE
 from .manager import FedoraManager
 from .rdfmetadata import RDFMetadata
@@ -19,7 +20,6 @@ from .type_manager import FedoraTypeManager
 from .utils import OrderableModelList
 
 log = logging.getLogger('fedoralink.models')
-
 
 
 class FedoraFieldOptions:
@@ -36,12 +36,14 @@ class FedoraFieldOptions:
         self.search_name = rdf2search(self.rdf_name)
 
 
-
 class FedoraOptions:
 
-    def __init__(self, clz, rdf_namespace=CESNET, rdf_types=None, field_options=None):
+    def __init__(self, clz, rdf_namespace=None, rdf_types=None, field_options=None, explicitly_declared=False):
         self.clz           = clz
         self.rdf_namespace = rdf_namespace
+        self.explicitly_declared = explicitly_declared
+        if not self.rdf_namespace:
+            self.rdf_namespace = CESNET
         self.rdf_types     = rdf_types
 
         for parent in clz._meta.parents:
@@ -52,7 +54,7 @@ class FedoraOptions:
 
         if not self.rdf_types:
             self.rdf_types = [
-                getattr(self.rdf_namespace, clz._meta.label)
+                getattr(self.rdf_namespace, clz._meta.db_table)
             ]
 
         for fld in clz._meta.fields:
@@ -62,16 +64,41 @@ class FedoraOptions:
                     fld.fedora_options.field = fld
                 else:
                     fld.fedora_options = FedoraFieldOptions(field=fld, rdf_namespace=self.rdf_namespace)
-            print(fld)
 
 
 def fedora(namespace=None, rdf_types=None, field_options=None):
     def annotate(clz):
         clz._meta.fedora_options = \
-            FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types, field_options=field_options)
+            FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types, field_options=field_options,
+                          explicitly_declared=True)
+        fld = models.TextField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
+        fld.contribute_to_class(clz, 'fedora_id')
+
+        # TODO: implement metadata and children
+        # fld = models.CharField(required=False, verbose_name=_('Fedora metadata'))
+        # fld.contribute_to_class(clz, 'fedora_meta')
+        #
+        # fld = models.CharField(required=False, verbose_name=_('Resource children'))
+        # fld.contribute_to_class(clz, 'fedora_children')
         return clz
     return annotate
 
+
+@fedora()
+class FedoraObject(models.Model):
+    pass
+
+
+
+
+
+
+
+
+
+#
+# TODO: old stuff
+#
 
 def get_from_classes(clazz, class_var):
     """
@@ -155,7 +182,7 @@ class FedoraObjectMetaclass(type):
         cls._meta = DjangoMetadataBridge(cls, [])
 
 
-class FedoraObject(metaclass=FedoraObjectMetaclass):
+class OldFedoraObject(metaclass=FedoraObjectMetaclass):
     """
     The base class of all Fedora objects, modelled along Django's model
 

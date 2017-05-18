@@ -6,8 +6,9 @@ import django.db.models.fields as django_fields
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
+from fedoralink.db.lookups import get_column_ids
+from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
-from fedoralink.models import FedoraOptions
 from . import FedoraError
 
 log = logging.getLogger(__file__)
@@ -17,56 +18,8 @@ class IndexMappingError(FedoraError):
     pass
 
 
-class SearchQuery:
-    def __init__(self, query, columns, start, end):
-        self.query = query
-        self.columns = columns
-        self.start = start
-        self.end = end
-
-    @property
-    def count(self):
-        if self.start is None or self.end is None:
-            return None
-        return self.end - self.start
-
-
-class InsertQuery:
-    def __init__(self, objects):
-        self.objects = objects
-
-
-class InsertScanner:
-    def __init__(self, data):
-        self.data = data
-
-    def __iter__(self):
-        return iter(self.data)
-
-
-class SelectScanner:
-    def __init__(self, scanner, columns, count):
-        self.scanner = scanner
-        self.columns = columns
-        self.count = count
-        self.iter    = iter(self.scanner)
-
-    def __next__(self):
-        if self.count:
-            self.count -= 1
-            if not self.count:
-                raise StopIteration()
-
-        data = next(self.iter)
-        src = data['_source']
-        return [
-            src[x[1]] for x in self.columns
-        ]
-
-
-class ElasticsearchMixin(object):
+class ElasticsearchConnection(object):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         urls = kwargs['elasticsearch_url']
         self.namespace_config = kwargs['namespace_config']
 
@@ -97,10 +50,8 @@ class ElasticsearchMixin(object):
 
     def update_elasticsearch_index(self, django_model):
 
-        ElasticsearchMixin._prepare_fedora_options(django_model._meta)
-
         fields = django_model._meta.fields
-        doc_type = django_model._meta.label
+        doc_type = django_model._meta.db_table
         mapping = self.elasticsearch.indices.get_mapping(index=self.elasticsearch_index_name,
                                                          doc_type=doc_type)
         # default if the mapping does not exists yet
@@ -170,12 +121,7 @@ class ElasticsearchMixin(object):
         return mapping
 
     @staticmethod
-    def get_query_representation(query, compiler):
-        opts = query.get_meta()
-        ElasticsearchMixin._prepare_fedora_options(opts)
-
-        extra_select, order_by, group_by = compiler.pre_sql_setup()
-        distinct_fields = compiler.get_distinct()
+    def get_query_representation(query, compiler, extra_select, order_by, group_by, distinct_fields):
 
         if query.annotations:
             raise NotImplementedError("Annotations not yet implemented")
@@ -208,7 +154,7 @@ class ElasticsearchMixin(object):
         query = {
             'query': {
                 'type': {
-                    'value': model._meta.label
+                    'value': model._meta.db_table
                 }
             }
         }
@@ -216,12 +162,8 @@ class ElasticsearchMixin(object):
         if where.children:
             raise NotImplementedError(".filter(), .exclude() not implemented")
 
-        return SearchQuery(query, [
-            (
-                x[0].field.fedora_options.rdf_name,
-                x[0].field.fedora_options.search_name
-            ) for x in compiler.select
-        ], compiler.query.low_mark, compiler.query.high_mark), {}
+        return SearchQuery(query, get_column_ids(compiler.select),
+                           compiler.query.low_mark, compiler.query.high_mark), {}
 
     def execute_search(self, query):
         return SelectScanner(
@@ -235,13 +177,15 @@ class ElasticsearchMixin(object):
             query.columns, query.count)
 
     def index_resources(self, query, ids):
-        for obj, obj_id in zip(query, ids):
+        for obj, obj_id in zip(query.objects, ids):
+            if not obj['doc_type']:
+                continue
             serialized_object = {k[1]: v for k, v in obj['fields'].items()}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
                                      id=obj_id, body=serialized_object)
 
-    @staticmethod
-    def _prepare_fedora_options(opts):
-        if not hasattr(opts, 'fedora_options'):
-            opts.fedora_options = FedoraOptions(opts.model)
+    def delete_all_data(self):
+        if self.elasticsearch.indices.exists(self.elasticsearch_index_name):
+            self.elasticsearch.indices.delete(index=self.elasticsearch_index_name)
+

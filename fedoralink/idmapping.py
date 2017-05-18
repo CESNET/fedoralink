@@ -11,5 +11,5 @@ def id2url(django_id):
     """
         Return url out of django id created by url2id
     """
-    num_bytes = django_id.bit_length() / 8 + 1
+    num_bytes = django_id.bit_length() // 8 + 1
     return django_id.to_bytes(num_bytes, byteorder='big', signed=False).decode('utf-8')

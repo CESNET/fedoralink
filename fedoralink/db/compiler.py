@@ -3,21 +3,16 @@ from __future__ import unicode_literals
 from django.db.models.sql import compiler
 
 from fedoralink.db.connection import FedoraWithElasticConnection
-from .elasticsearch_connection import ElasticsearchMixin
+from .elasticsearch_connection import ElasticsearchConnection
 
 integer_types = (int,)
 
 
 class SQLCompiler(compiler.SQLCompiler):
 
-    def compile(self, node, *args, **kwargs):
-        return super().compile(node, *args, **kwargs)
-
-    def execute_sql(self, result_type=compiler.SINGLE):
-        return super().execute_sql(result_type)
-
     def as_sql(self, with_limits=True, with_col_aliases=False, subquery=False):
-        return ElasticsearchMixin.get_query_representation(self.query, self)
+        with self.connection.cursor() as cursor:
+            return cursor.connection.get_query_representation(self.query, self, self.connection)
 
     def has_results(self):
         import inspect

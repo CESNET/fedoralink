@@ -78,7 +78,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = False
+todo_include_todos = True
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -87,6 +87,7 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 html_theme = 'alabaster'
+# html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

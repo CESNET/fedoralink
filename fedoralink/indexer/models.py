@@ -7,7 +7,7 @@ from rdflib import Literal, XSD
 
 from fedoralink.fedorans import FEDORA_INDEX
 from fedoralink.indexer.fields import IndexedField
-from fedoralink.models import FedoraObjectMetaclass, FedoraObject, DjangoMetadataBridge
+from fedoralink.models import FedoraObjectMetaclass, DjangoMetadataBridge, OldFedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 
 
@@ -104,7 +104,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         class_prepared.send(sender=cls)
 
 
-class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
+class IndexableFedoraObject(OldFedoraObject, metaclass=IndexableFedoraObjectMetaclass):
     def created(self):
         super().created()
         self.types.add(FEDORA_INDEX.Indexable)

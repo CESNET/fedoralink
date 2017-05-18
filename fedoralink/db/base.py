@@ -1,15 +1,20 @@
 from __future__ import unicode_literals
 
+import logging
+
+from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from django.db.backends.base.operations import BaseDatabaseOperations
-from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.base.creation import BaseDatabaseCreation
-from django.db.backends.base.validation import BaseDatabaseValidation
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.backends.base.validation import BaseDatabaseValidation
 
 from fedoralink.db import FedoraError
 from fedoralink.db.connection import FedoraWithElasticConnection
+from fedoralink.db.cursor import DatabaseCursor
+
+log = logging.getLogger(__file__)
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -17,56 +22,16 @@ class DatabaseCreation(BaseDatabaseCreation):
         raise Exception("Not implemented")
 
     def create_test_db(self, *args, **kwargs):
-        raise Exception("Not implemented")
+        settings = self.connection.settings_dict
+        namespace_options = settings.setdefault('CONNECTION_OPTIONS', {'namespace': {}})['namespace']
+        namespace_options['namespace'] = '%s-%s' % (namespace_options.get('namespace'), 'test')
+        namespace_options['prefix'] = '%s-%s' % (namespace_options.get('prefix'), 'test')
 
     def destroy_test_db(self, *args, **kwargs):
-        raise Exception("Not implemented")
-
-
-class DatabaseCursor(object):
-    def __init__(self, connection):
-        self.connection          = connection
-        self.current_query       = None
-        self.current_params      = None
-        self.scanner             = None
-        self.lastrowid           = None
-
-    def close(self):
-        self.connection.disconnect()
-
-    def execute(self, query, params):
-        self.current_query = query
-        self.current_params = params
-        self.scanner = self.connection.execute(query, params)
-
-    def executemany(self, sql, params):
-        """ Repeatedly executes a SQL statement. """
-        raise NotImplementedError('Not yet implemented')
-
-    def fetchall(self):
-        """ Fetches all rows from the resultset. """
-        raise NotImplementedError('Not yet implemented')
-
-    def fetchmany(self, n):
-        """ Fetches several rows from the resultset. """
-        ret = []
-        for i in range(n):
-            try:
-                ret.append(next(self.scanner))
-            except StopIteration:
-                break
-        return ret
-
-    def fetchone(self):
-        """ Fetches one row from the resultset. """
-        raise NotImplementedError('Not yet implemented')
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        raise NotImplementedError('Not yet implemented')
-
+        if not self.connection.connection:
+            # force create connection
+            self.connection.cursor()
+        self.connection.connection.delete_all_data()
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -89,6 +54,11 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         return []
 
 
+class IdentityCast(object):
+    def __mod__(self, other):
+        return other
+
+
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "fedoralink.db.compiler"
 
@@ -102,6 +72,11 @@ class DatabaseOperations(BaseDatabaseOperations):
     def adapt_datetimefield_value(self, value):
         return value
 
+    def field_cast_sql(self, db_type, internal_type):
+        return IdentityCast()
+
+    def lookup_cast(self, lookup_type, internal_type=None):
+        return IdentityCast()
 
 class DatabaseValidation(BaseDatabaseValidation):
     pass
@@ -115,43 +90,42 @@ class FedoraDatabase(object):
         """Database-side errors."""
 
     class OperationalError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Exceptions related to the database operations, out of the programmer control."""
 
     class IntegrityError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Exceptions related to database Integrity."""
 
     class DataError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Exceptions related to invalid data"""
 
     class InterfaceError(
-            Error,
+        Error,
     ):
         """Exceptions related to the pyldap interface."""
 
     class InternalError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Exceptions encountered within the database."""
 
     class ProgrammingError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Invalid data send by the programmer."""
 
     class NotSupportedError(
-            DatabaseError,
+        DatabaseError,
     ):
         """Exception for unsupported actions."""
 
 
 class FedoraSchemaEditor(BaseDatabaseSchemaEditor):
-
     def quote_value(self, value):
         pass
 
@@ -159,11 +133,11 @@ class FedoraSchemaEditor(BaseDatabaseSchemaEditor):
         raise Exception("Should not be called")
 
     def create_model(self, model):
-        self.connection.connection.update_elasticsearch_index(model)
+        with self.connection.cursor() as cursor:
+            cursor.connection.create_model(model)
 
 
 class DatabaseWrapper(BaseDatabaseWrapper):
-
     vendor = 'fedoralink'
 
     Database = FedoraDatabase
@@ -226,11 +200,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return ret
 
     def get_new_connection(self, conn_params):
-        connection = FedoraWithElasticConnection(fcrepo_url        = conn_params['repo_url'],
-                                                 elasticsearch_url = conn_params['search_url'],
-                                                 fcrepo_username   = conn_params['username'],
-                                                 fcrepo_password   = conn_params['password'],
-                                                 namespace_config  = conn_params['options']['namespace'])
+        connection = FedoraWithElasticConnection(fcrepo_url=conn_params['repo_url'],
+                                                 elasticsearch_url=conn_params['search_url'],
+                                                 fcrepo_username=conn_params['username'],
+                                                 fcrepo_password=conn_params['password'],
+                                                 namespace_config=conn_params['options']['namespace'])
 
         options = conn_params['options']
         for opt, value in options.items():
@@ -255,6 +229,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _start_transaction_under_autocommit(self):
         pass
+
+    def prepare_fedora_options(self, opts):
+        return FedoraWithElasticConnection.prepare_fedora_options(opts)
 
 
 class NamespaceConfig:
