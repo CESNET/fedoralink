@@ -22,6 +22,10 @@ from .utils import OrderableModelList
 log = logging.getLogger('fedoralink.models')
 
 
+class FedoraResourceUrlField(models.TextField):
+    pass
+
+
 class FedoraFieldOptions:
 
     def __init__(self, field=None, rdf_namespace=None, rdf_name=None):
@@ -71,7 +75,8 @@ def fedora(namespace=None, rdf_types=None, field_options=None):
         clz._meta.fedora_options = \
             FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types, field_options=field_options,
                           explicitly_declared=True)
-        fld = models.TextField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
+
+        fld = FedoraResourceUrlField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')
 
         # TODO: implement metadata and children

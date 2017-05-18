@@ -9,6 +9,7 @@ from elasticsearch import Elasticsearch
 from fedoralink.db.lookups import get_column_ids
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
+from fedoralink.models import FedoraResourceUrlField
 from . import FedoraError
 
 log = logging.getLogger(__file__)
@@ -99,6 +100,10 @@ class ElasticsearchConnection(object):
     def _fields_to_mapping(fields):
         mapping = {}
         for fld in fields:
+            # do not index this field, as it is only a dummy ...
+            if isinstance(fld, FedoraResourceUrlField) or isinstance(fld, django_fields.AutoField):
+                continue
+
             name = fld.fedora_options.search_name
             if isinstance(fld, django_fields.AutoField):
                 field_mapping = {
@@ -112,6 +117,12 @@ class ElasticsearchConnection(object):
                 # TODO: check if there is a fulltext annotation there
                 field_mapping = {
                     'type': 'keyword'
+                }
+            elif isinstance(fld, django_fields.TextField):
+                # TODO: check if there is a fulltext annotation there
+                # TODO: store=True?
+                field_mapping = {
+                    'type': 'text',
                 }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
