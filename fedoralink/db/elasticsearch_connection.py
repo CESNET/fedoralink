@@ -204,7 +204,7 @@ class ElasticsearchConnection(object):
             serialized_object = {k[1]: v for k, v in obj['fields'].items()}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
-                                     id=obj_id, body=serialized_object)
+                                     id=obj_id, body=serialized_object)  # wait_for_active_shards='all'
 
     def delete_all_data(self):
         if self.elasticsearch.indices.exists(self.elasticsearch_index_name):

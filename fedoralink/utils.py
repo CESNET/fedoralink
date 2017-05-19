@@ -1,16 +1,8 @@
-import binascii
 import logging
 
 from rdflib import Literal
 
 log = logging.getLogger('fedoralink.utils')
-
-
-try:
-    from cis_django_modules.cis_util.czech import czech_sorting_key
-except:
-    czech_sorting_key = lambda x:x
-
 
 
 def get_class( kls ):
@@ -171,8 +163,6 @@ class OrderableModelList(list):
                         item = None
 
                 item = item.strip()
-                if lang == 'cs':
-                    item = czech_sorting_key(item)
 
                 if asc == '-':
                     ret.append(NegatedKey(item))
@@ -193,44 +183,3 @@ known_prefixes = {
 }
 
 known_prefixes_reversed = { v:k for k, v in known_prefixes.items() }
-
-
-def url2id(url):
-    ret = []
-    for p, val in known_prefixes.items():
-        if url.startswith(p):
-            ret.append('_' + known_prefixes[p])
-            url = url[len(p):]
-            break
-
-    url = url.encode('utf-8')
-    for c in url:
-        if ord('a') <= c <= ord('z') or ord('A') <= c <= ord('Z') or ord('0') <= c <= ord('9'):
-            ret.append(chr(c))
-        else:
-            ret.append('__')
-            ret.append(binascii.hexlify(bytes([c])).decode('utf-8'))
-    return ''.join(ret)
-
-
-def id2url(id):
-    ret = []
-    tok = iter(id)
-    try:
-        while True:
-            c = next(tok)
-            if c != '_':
-                ret.append(c)
-            else:
-                c = next(tok)
-                if c != '_':
-                    ret.append(known_prefixes_reversed[c])
-                else:
-                    c1 = next(tok)
-                    c2 = next(tok)
-                    ret.append(binascii.unhexlify(''.join([c1,c2])).decode('utf-8'))
-    except StopIteration:
-        pass
-    except:
-        raise Exception("Exception in id2url, id %s" % id)
-    return ''.join(ret)

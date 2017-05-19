@@ -6,34 +6,35 @@ from fedoralink.idmapping import id2url
 
 
 def upload_binary_files(sender, **kwargs):
-    from fedoralink.models import UploadedFileStream
-    from fedoralink.indexer.models import fedoralink_clear_streams
-    from django.core.files.uploadedfile import UploadedFile
-    from fedoralink.utils import TypedStream
-
-    instance = kwargs['instance']
-
-    save_required = False
-    from fedoralink.indexer.models import fedoralink_streams
-    for fld, streams in fedoralink_streams(instance):
-        stream_instances = []
-        # print(type(streams))
-        for stream_id, stream in enumerate(streams):
-
-            if isinstance(stream, UploadedFile):
-                stream = TypedStream(UploadedFileStream(stream), stream.content_type, stream.name)
-
-            stream_inst = instance.create_child("%s_%s" % (fld.name, stream_id))
-            stream_inst.set_local_bitstream(stream)
-            stream_inst.save()
-            stream_instances.append(stream_inst)
-
-        setattr(instance, fld.name, stream_instances)
-        save_required = True
-
-    if save_required:
-        fedoralink_clear_streams(instance)
-        instance.save()
+    pass
+    # from fedoralink.models import UploadedFileStream
+    # from fedoralink.indexer.models import fedoralink_clear_streams
+    # from django.core.files.uploadedfile import UploadedFile
+    # from fedoralink.utils import TypedStream
+    #
+    # instance = kwargs['instance']
+    #
+    # save_required = False
+    # from fedoralink.indexer.models import fedoralink_streams
+    # for fld, streams in fedoralink_streams(instance):
+    #     stream_instances = []
+    #     # print(type(streams))
+    #     for stream_id, stream in enumerate(streams):
+    #
+    #         if isinstance(stream, UploadedFile):
+    #             stream = TypedStream(UploadedFileStream(stream), stream.content_type, stream.name)
+    #
+    #         stream_inst = instance.create_child("%s_%s" % (fld.name, stream_id))
+    #         stream_inst.set_local_bitstream(stream)
+    #         stream_inst.save()
+    #         stream_instances.append(stream_inst)
+    #
+    #     setattr(instance, fld.name, stream_instances)
+    #     save_required = True
+    #
+    # if save_required:
+    #     fedoralink_clear_streams(instance)
+    #     instance.save()
 
 
 def fix_fedora_id(sender, **kwargs):
@@ -54,10 +55,10 @@ class ApplicationConfig(AppConfig):
 
         # make sure common namespaces are loaded
         # noinspection PyUnresolvedReferences
-        import fedoralink.common_namespaces.dc
+        # TODO: import fedoralink.common_namespaces.dc
 
         # noinspection PyUnresolvedReferences
-        import fedoralink.common_namespaces.web_acl.models
+        # TODO: import fedoralink.common_namespaces.web_acl.models
 
         from django.db.models.signals import post_save
 
