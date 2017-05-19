@@ -129,6 +129,10 @@ class ElasticsearchConnection(object):
 
             mapping[name] = field_mapping
 
+        mapping['rdf_type'] = {
+            'type': 'keyword'
+        }
+
         return mapping
 
     @staticmethod
@@ -236,7 +240,7 @@ def convert_tree_to_elastic(tree):
                 rhs = convert_tree_to_elastic(rhs)
             return {
                 'term': {
-                    convert_tree_to_elastic(tree.operands[0]) : rhs
+                    convert_tree_to_elastic(tree.operands[0]): rhs
                 }
             }
 

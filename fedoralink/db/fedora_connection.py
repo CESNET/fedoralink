@@ -49,13 +49,16 @@ class FedoraConnection(object):
         ids = []
         for object in insert_query.objects:
             rdf_metadata = RDFMetadata('')
-            for fld, val in object['fields'].items():
-                if not isinstance(val, Literal):
-                    if isinstance(val, str):
-                        val = Literal(val, datatype=XSD.string)
-                    else:
-                        val = Literal(val)
-                rdf_metadata.add(fld[0], val)
+            for fld, vals in object['fields'].items():
+                if not isinstance(vals, list) and not isinstance(vals, tuple):
+                    vals = [vals]
+                for val in vals:
+                    if not isinstance(val, Literal):
+                        if isinstance(val, str):
+                            val = Literal(val, datatype=XSD.string)
+                        else:
+                            val = Literal(val)
+                    rdf_metadata.add(fld[0], val)
             parent_url = object['parent']
             if not parent_url:
                 parent_url = self.namespace_config.default_parent_for_inserted_object(object)

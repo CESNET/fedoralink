@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from fedoralink.db.utils import rdf2search
-from fedoralink.fedorans import CESNET
+from fedoralink.fedorans import CESNET, CESNET_TYPE
 
 log = logging.getLogger('fedoralink.models')
 
@@ -36,6 +36,8 @@ class FedoraOptions:
         if not self.rdf_namespace:
             self.rdf_namespace = CESNET
         self.rdf_types     = rdf_types
+        if not self.rdf_types:
+            self.rdf_types = [getattr(CESNET_TYPE, self.clz._meta.db_table)]
 
         for parent in clz._meta.parents:
             if not hasattr(parent, '_meta'):

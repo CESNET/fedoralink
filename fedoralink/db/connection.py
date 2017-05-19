@@ -2,7 +2,7 @@ import logging
 
 import django.db.models.lookups
 from django.db.models.sql.where import WhereNode
-from rdflib import URIRef
+from rdflib import URIRef, RDF, Literal
 
 from fedoralink.db.lookups import FedoraIdColumn
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk
@@ -45,7 +45,6 @@ class FedoraWithElasticConnection:
 
     def create_model(self, django_model):
         FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
-        # create the collection for the model in fedora TODO: try to get the resource if it exists
         if not FedoraObject.objects.filter(fedora_id=django_model._meta.db_table).exists():
             self.fedora_connection.create_resources(InsertQuery(
                     [
@@ -94,21 +93,27 @@ class FedoraWithElasticConnection:
         # TODO: rdf_type
         if has_fields:
             value_rows = [
-                {
-                    'parent': getattr(obj, '_fedora_parent', None),
-                    'doc_type': opts.db_table,
-                    'fields': {
-                        (field.fedora_options.rdf_name, field.fedora_options.search_name):
-                            compiler.prepare_value(field, compiler.pre_save_val(field, obj))
-                        for field in fields if hasattr(field, 'fedora_options')
-                    }
-                }
+                FedoraWithElasticConnection._object_to_insert_data(opts, obj, fields, compiler)
                 for obj in query.objs
             ]
         else:
             value_rows = [{} for _ in query.objs]
 
         yield InsertQuery(value_rows), {}
+
+    @staticmethod
+    def _object_to_insert_data(opts, obj, fields, compiler):
+        ret = {
+            'parent': getattr(obj, '_fedora_parent', None),
+            'doc_type': opts.db_table,
+            'fields': {
+                (field.fedora_options.rdf_name, field.fedora_options.search_name):
+                    compiler.prepare_value(field, compiler.pre_save_val(field, obj))
+                for field in fields if hasattr(field, 'fedora_options')
+            }
+        }
+        ret['fields'][(RDF.type, 'rdf_type')] = [Literal(x) for x in opts.fedora_options.rdf_types]
+        return ret
 
     @staticmethod
     def prepare_fedora_options(opts):
