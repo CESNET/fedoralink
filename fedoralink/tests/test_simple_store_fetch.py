@@ -1,3 +1,5 @@
+import elasticsearch.helpers
+import time
 from django.core.management import call_command
 from django.db import connections
 from django.db.models import Q
@@ -12,6 +14,8 @@ from fedoralink.models import FedoraObject
 from fedoralink.tests.testserver.testapp.models import Simple, Complex
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('elasticsearch.trace').propagate = True
+
 
 class TestSimpleStoreFetch(TransactionTestCase):
     def setUp(self):
@@ -19,7 +23,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
             cursor.execute(InsertQuery(
                 [
                     {
-                        'parent': '/rest',       # break out of the test-test context
+                        'parent': '/rest',  # break out of the test-test context
                         'doc_type': None,
                         'fields': {
                         },
@@ -78,6 +82,70 @@ class TestSimpleStoreFetch(TransactionTestCase):
         for i in range(4):
             for j in range(4):
                 objs.append(Complex.objects.create(a='%s' % i, b='%s' % j))
+        time.sleep(5)
+
+        with connections['repository'].cursor() as cursor:
+            es = cursor.cursor.connection.elasticsearch_connection.elasticsearch
+            elasticsearch_index_name = cursor.cursor.connection.elasticsearch_connection.elasticsearch_index_name
+            for i in range(4):
+                for j in range(4):
+                    query = {
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {
+                                        "type": {
+                                            "value": "testapp_complex"
+                                        }
+                                    },
+                                    {
+                                        "bool": {
+                                            "must": [
+                                                {
+                                                    "bool": {
+                                                        "minimum_should_match": 1,
+                                                        "should": [
+                                                            {
+                                                                "term": {
+                                                                    "cesnet_3a_a": str(i)
+                                                                }
+                                                            },
+                                                            {
+                                                                "term": {
+                                                                    "cesnet_3a_b": str(j)
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                    scanner = elasticsearch.helpers.scan(
+                        es,
+                        query=query,
+                        scroll=u'1m',
+                        preserve_order=True,
+                        index=elasticsearch_index_name,
+                        from_=0)
+                    count = 0
+                    for r in scanner:
+                        count += 1
+
+                    search = es.search(
+                        body=query,
+                        index=elasticsearch_index_name,
+                    )
+                    search = search['hits']['hits']
+                    search_count = len(search)
+                    print("Search result", '\n'.join([str(x['_source']) for x in search]))
+                    self.assertEqual(search_count, count, 'Scanner returned different number of results than search')
+                    self.assertEqual(7, count, 'Scanner returned wrong number of documents')
+
 
         for i in range(4):
             for j in range(4):
