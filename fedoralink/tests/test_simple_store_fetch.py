@@ -1,5 +1,6 @@
 from django.core.management import call_command
 from django.db import connections
+from django.db.models import Q
 from django.test import TransactionTestCase
 
 from fedoralink.db.queries import InsertQuery
@@ -8,7 +9,7 @@ import logging
 
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraObject
-from fedoralink.tests.testserver.testapp.models import Simple
+from fedoralink.tests.testserver.testapp.models import Simple, Complex
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -45,3 +46,43 @@ class TestSimpleStoreFetch(TransactionTestCase):
         self.assertEqual(o1.id, o2.id, 'The id of the stored and retrieved objects must match')
         self.assertEqual(o1.fedora_id, o2.fedora_id, 'The fedora_id of the stored and retrieved objects must match')
 
+    def test_query_by_and(self):
+        objs = []
+        for i in range(10):
+            for j in range(10):
+                objs.append(Complex.objects.create(a='%s' % i, b='%s' % j))
+
+        for i in range(10):
+            for j in range(10):
+                objs_len = len(Complex.objects.filter(a='%s' % i, b='%s' % j))
+                self.assertEqual(1, objs_len, 'Just 1 object expected')
+
+        for i in range(10):
+            objs = list(Complex.objects.filter(a='%s' % i))
+            self.assertEqual(10, len(objs), 'Bad number of items retrieved from repository')
+            self.assertEqual(set([x.b for x in objs]), set(['%s' % x for x in range(10)]), 'All elems are required')
+
+        for i in range(10):
+            objs = list(Complex.objects.filter(b='%s' % i))
+            self.assertEqual(10, len(objs), 'Bad number of items retrieved from repository')
+            self.assertEqual(set([x.a for x in objs]), set(['%s' % x for x in range(10)]), 'All elems are required')
+
+        for i in range(10):
+            for j in range(10):
+                objs_len = len(Complex.objects.filter(Q(a='%s' % i) & Q(b='%s' % j)))
+                self.assertEqual(1, objs_len, 'Just 1 object expected')
+
+    def test_query_by_or(self):
+        objs = []
+
+        for i in range(4):
+            for j in range(4):
+                objs.append(Complex.objects.create(a='%s' % i, b='%s' % j))
+
+        for i in range(4):
+            for j in range(4):
+                objs = list(Complex.objects.filter(Q(a='%s' % i) | Q(b='%s' % j)))
+                for idx, o in enumerate(objs):
+                    print(idx, o.a, o.b)
+                objs_len = len(Complex.objects.filter(Q(a='%s' % i) | Q(b='%s' % j)))
+                self.assertEqual(7, objs_len, '7 objects expected')

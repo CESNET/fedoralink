@@ -55,6 +55,7 @@ class SelectScanner:
                 raise StopIteration()
 
         data = next(self.iter)
+        print(self, data['_source'])
         src = data['_source']
         return [
             self.get_column_data(data, src, x) for x in self.columns
