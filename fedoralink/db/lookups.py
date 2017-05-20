@@ -1,8 +1,14 @@
-from django.db.models import Field
-from django.db.models.expressions import Col
+from django.db.models import Field, CharField
+from django.db.models.expressions import Col, Value
 from django.db.models.sql.where import WhereNode
 
 from fedoralink.db.patches.where_patch import where_as_fedoralink
+
+
+class FedoraMetadataAnnotation(Value):
+    def __init__(self):
+        super().__init__('Something weird happened, this value should have been replaced with fedora metadata',
+                         CharField())
 
 
 def unimplemented_lookup(self, compiler, connection):
@@ -82,9 +88,24 @@ def get_column_ids(columns):
     ret = []
     for col in columns:
         fedora_col = col[1][0]
+
+        django_field = col[0].field
+
+        if isinstance(col[0], FedoraMetadataAnnotation):
+            ret.append(
+                (
+                    None,
+                    None,
+                    None,
+                    col[0],
+                    django_field
+                )
+            )
+            continue
+
         if not isinstance(fedora_col, Column):
             raise NotImplementedError('Returning column of type %s is not yet implemented' % type(fedora_col))
-        django_field = col[0].field
+
         opts = getattr(django_field, 'fedora_options', None)
         if opts:
             rdf_name = opts.rdf_name

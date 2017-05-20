@@ -2,7 +2,7 @@ import elasticsearch.helpers
 import time
 from django.core.management import call_command
 from django.db import connections
-from django.db.models import Q
+from django.db.models import Q, F, Value, CharField
 from django.test import TransactionTestCase
 
 from fedoralink.db.queries import InsertQuery
@@ -164,3 +164,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
         })
         objs = list(objs)
         self.assertEqual(1, len(objs), 'Should have got only one object')
+        self.assertEqual(str(objs[0].fedora_meta[CESNET.a]), obj.a)
+        self.assertEqual(str(objs[0].fedora_meta[CESNET.b]), obj.b)
+        self.assertEqual(objs[0].id, obj.id)
+        self.assertEqual(objs[0].fedora_id, obj.fedora_id)

@@ -1,6 +1,20 @@
-from fedoralink.db.lookups import FedoraIdColumn
+from rdflib import URIRef
+
+from fedoralink.db.lookups import FedoraMetadataAnnotation
+from fedoralink.db.utils import search2rdf
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraResourceUrlField
+
+
+class FedoraMetadata:
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, item):
+        if isinstance(item, URIRef):
+            item = str(item)
+        print(self.data)
+        return self.data[item]
 
 
 class SearchQuery:
@@ -46,7 +60,7 @@ class SelectScanner:
         self.scanner = scanner
         self.columns = columns
         self.count = count
-        self.iter    = iter(self.scanner)
+        self.iter = iter(self.scanner)
 
     def __next__(self):
         if self.count:
@@ -62,11 +76,14 @@ class SelectScanner:
         ]
 
     def get_column_data(self, data, source, column):
+        if isinstance(column[3], FedoraMetadataAnnotation):
+            return FedoraMetadata({search2rdf(k) : v for k, v in source.items()})
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
             return data['_id']
         return source[column[1]]
+
 
 class FedoraResourceScanner:
     def __init__(self, data):

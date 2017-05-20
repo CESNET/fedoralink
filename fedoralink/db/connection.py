@@ -6,6 +6,7 @@ from rdflib import URIRef, RDF, Literal
 
 from fedoralink.db.lookups import FedoraIdColumn
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk
+from fedoralink.db.utils import rdf2search
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraOptions, FedoraObject
 from .elasticsearch_connection import ElasticsearchConnection
@@ -112,7 +113,7 @@ class FedoraWithElasticConnection:
                 for field in fields if hasattr(field, 'fedora_options')
             }
         }
-        ret['fields'][(RDF.type, 'rdf_type')] = [Literal(x) for x in opts.fedora_options.rdf_types]
+        ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [Literal(x) for x in opts.fedora_options.rdf_types]
         return ret
 
     @staticmethod

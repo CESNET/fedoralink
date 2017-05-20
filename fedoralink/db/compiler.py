@@ -1,16 +1,16 @@
 from __future__ import unicode_literals
 
+from django.db.models import Value, CharField
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import SINGLE
 
 from fedoralink.db.connection import FedoraWithElasticConnection
-from .elasticsearch_connection import ElasticsearchConnection
+from fedoralink.db.lookups import FedoraMetadataAnnotation
 
 integer_types = (int,)
 
 
 class SQLCompiler(compiler.SQLCompiler):
-
     def as_sql(self, with_limits=True, with_col_aliases=False, subquery=False):
         with self.connection.cursor() as cursor:
             return cursor.connection.get_query_representation(self.query, self, self.connection)
@@ -19,8 +19,8 @@ class SQLCompiler(compiler.SQLCompiler):
         ret = self.execute_sql(SINGLE)
         return ret is not None
 
-class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
 
+class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
     def as_sql(self, with_limits=True, with_col_aliases=False, subquery=False):
         return FedoraWithElasticConnection.get_insert_representation(self.query, self)
 

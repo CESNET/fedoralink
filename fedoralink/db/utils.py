@@ -13,3 +13,15 @@ def rdf2search(rdf_name):
             search_name.append('_%02x' % ord(rev[2][0]))
 
     return ''.join(search_name)
+
+
+def search2rdf(search_name):
+    ret = []
+    print(search_name)
+    for rev in re.findall('(([^_]+)|(_..))', search_name):
+        if rev[1]:
+            ret.append(rev[1])
+        else:
+            rev = rev[2][1:]
+            ret.append(chr(int(rev, 16)))
+    return ''.join(ret)

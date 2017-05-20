@@ -2,6 +2,7 @@ from django.core.exceptions import FieldError
 from django.db.models import QuerySet, sql, CharField, TextField
 from django.db.models.manager import BaseManager
 
+from fedoralink.db.lookups import FedoraMetadataAnnotation
 from fedoralink.fedora_meta import FedoraFieldOptions
 
 
@@ -40,3 +41,6 @@ class FedoraQuerySet(QuerySet):
 
 class FedoraManager(BaseManager.from_queryset(FedoraQuerySet)):
     pass
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(fedora_meta=FedoraMetadataAnnotation())

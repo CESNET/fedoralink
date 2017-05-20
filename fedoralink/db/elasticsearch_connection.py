@@ -69,13 +69,13 @@ class ElasticsearchConnection(object):
 
         new_mapping = self._fields_to_mapping(fields)
 
-        fields = set(mapping.keys())
-        fields.update(new_mapping.keys())
+        fields_names = set(mapping.keys())
+        fields_names.update(new_mapping.keys())
 
         log.debug("%s : %s", mapping, new_mapping)
         changed = False
 
-        for fld in fields:
+        for fld in fields_names:
             if fld in mapping:
                 if fld not in new_mapping:
                     raise IndexMappingError(
@@ -129,7 +129,7 @@ class ElasticsearchConnection(object):
 
             mapping[name] = field_mapping
 
-        mapping['rdf_type'] = {
+        mapping[rdf2search('rdf_type')] = {
             'type': 'keyword'
         }
 
@@ -137,8 +137,9 @@ class ElasticsearchConnection(object):
 
     @staticmethod
     def get_query_representation(query, compiler, extra_select, order_by, group_by, distinct_fields):
-
-        if query.annotations:
+        annotations = query.annotations.copy()
+        annotations.pop('fedora_meta', None)
+        if annotations:
             raise NotImplementedError("Annotations not yet implemented")
         if query.extra:
             raise NotImplementedError("Extra not yet implemented")
@@ -174,7 +175,7 @@ class ElasticsearchConnection(object):
             for rdf_type in rdf_types:
                 query_parts.append({
                     'term': {
-                        'rdf_type': rdf_type
+                        rdf2search('rdf_type'): rdf_type
                     }
                 })
 
@@ -182,16 +183,16 @@ class ElasticsearchConnection(object):
             tree, params = compiler.compile(where)
             query_parts.append(convert_tree_to_elastic(tree))
 
-        query = {
+        elastic_query = {
             'query': {
                 'bool': {
                     'must': query_parts
                 }
             }
         }
-        print(json.dumps(query, indent=4))
+        print(json.dumps(elastic_query, indent=4))
 
-        return SearchQuery(query, get_column_ids(compiler.select),
+        return SearchQuery(elastic_query, get_column_ids(compiler.select),
                            compiler.query.low_mark, compiler.query.high_mark), {}
 
     def execute_search(self, query):
