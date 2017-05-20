@@ -167,12 +167,16 @@ class ElasticsearchConnection(object):
         where = query.where
 
         query_parts = []
+
+        rdf_types = model._meta.fedora_options.rdf_types
+
         if type(model) != FedoraObject:
-            query_parts.append({
-                'type': {
-                    'value': model._meta.db_table
-                }
-            })
+            for rdf_type in rdf_types:
+                query_parts.append({
+                    'term': {
+                        'rdf_type': rdf_type
+                    }
+                })
 
         if where.children:
             tree, params = compiler.compile(where)
