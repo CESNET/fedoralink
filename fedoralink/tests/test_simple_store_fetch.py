@@ -107,12 +107,12 @@ class TestSimpleStoreFetch(TransactionTestCase):
                                                         "should": [
                                                             {
                                                                 "term": {
-                                                                    "cesnet_3a_a": str(i)
+                                                                    "http_3a__2f__2f_cesnet_2e_cz_2f_ns_2f_repository_23_a": str(i)
                                                                 }
                                                             },
                                                             {
                                                                 "term": {
-                                                                    "cesnet_3a_b": str(j)
+                                                                    "http_3a__2f__2f_cesnet_2e_cz_2f_ns_2f_repository_23_b": str(j)
                                                                 }
                                                             }
                                                         ]
