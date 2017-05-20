@@ -170,7 +170,7 @@ class ElasticsearchConnection(object):
 
         rdf_types = model._meta.fedora_options.rdf_types
 
-        if type(model) != FedoraObject:
+        if model != FedoraObject:
             for rdf_type in rdf_types:
                 query_parts.append({
                     'term': {

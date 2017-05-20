@@ -10,6 +10,6 @@ def rdf2search(rdf_name):
         if rev[1]:
             search_name.append(rev[1])
         else:
-            search_name.append('_%x_' % ord(rev[2][0]))
+            search_name.append('_%02x' % ord(rev[2][0]))
 
     return ''.join(search_name)

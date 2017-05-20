@@ -9,6 +9,7 @@ from fedoralink.db.queries import InsertQuery
 
 import logging
 
+from fedoralink.fedorans import CESNET
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraObject
 from fedoralink.tests.testserver.testapp.models import Simple, Complex
@@ -107,12 +108,12 @@ class TestSimpleStoreFetch(TransactionTestCase):
                                                         "should": [
                                                             {
                                                                 "term": {
-                                                                    "http_3a__2f__2f_cesnet_2e_cz_2f_ns_2f_repository_23_a": str(i)
+                                                                    "http_3a_2f_2fcesnet_2ecz_2fns_2frepository_23a": str(i)
                                                                 }
                                                             },
                                                             {
                                                                 "term": {
-                                                                    "http_3a__2f__2f_cesnet_2e_cz_2f_ns_2f_repository_23_b": str(j)
+                                                                    "http_3a_2f_2fcesnet_2ecz_2fns_2frepository_23b": str(j)
                                                                 }
                                                             }
                                                         ]
@@ -154,3 +155,12 @@ class TestSimpleStoreFetch(TransactionTestCase):
                     print(idx, o.a, o.b)
                 objs_len = len(Complex.objects.filter(Q(a='%s' % i) | Q(b='%s' % j)))
                 self.assertEqual(7, objs_len, '7 objects expected')
+
+    def test_query_by_unmapped_property_name(self):
+        obj = Complex.objects.create(a='1', b='1')
+        time.sleep(5)
+        objs = FedoraObject.objects.filter(**{
+            CESNET.a : '1'
+        })
+        objs = list(objs)
+        self.assertEqual(1, len(objs), 'Should have got only one object')
