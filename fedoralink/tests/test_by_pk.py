@@ -1,21 +1,8 @@
+import logging
 import unittest.util
 
-import elasticsearch.helpers
-import time
-from django.core.management import call_command
-from django.db import connections
-from django.db.models import Q, F, Value, CharField
-from django.test import TransactionTestCase
-from rdflib import URIRef
-
-from fedoralink.db.queries import InsertQuery
-
-import logging
-
-from fedoralink.fedorans import CESNET
-from fedoralink.idmapping import url2id
-from fedoralink.models import FedoraObject
-from fedoralink.tests.testserver.testapp.models import Simple, Complex
+from .utils import FedoraTestBase
+from fedoralink.tests.testserver.testapp.models import Simple
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -23,23 +10,9 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestByPk(TransactionTestCase):
+class TestByPk(FedoraTestBase):
     def setUp(self):
-        with connections['repository'].cursor() as cursor:
-            cursor.execute(InsertQuery(
-                [
-                    {
-                        'parent': '/rest',  # break out of the test-test context
-                        'doc_type': None,
-                        'fields': {
-                        },
-                        'slug': 'test-test'
-                    }
-                ]
-            ))
-            print(cursor)
-        call_command('migrate', '--database', 'repository', 'testapp')
-        self.maxDiff = None
+        super().setUp()
 
         self.object = Simple.objects.create(text='Hello world 1')
         self.assertIsNotNone(self.object.id, 'Stored object must have an id')

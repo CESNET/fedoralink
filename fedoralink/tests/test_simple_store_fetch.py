@@ -1,21 +1,17 @@
+import logging
+import time
 import unittest.util
 
 import elasticsearch.helpers
-import time
-from django.core.management import call_command
 from django.db import connections
-from django.db.models import Q, F, Value, CharField
-from django.test import TransactionTestCase
+from django.db.models import Q
 from rdflib import URIRef
-
-from fedoralink.db.queries import InsertQuery
-
-import logging
 
 from fedoralink.fedorans import CESNET
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraObject
 from fedoralink.tests.testserver.testapp.models import Simple, Complex
+from .utils import FedoraTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -23,31 +19,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestSimpleStoreFetch(TransactionTestCase):
-    def setUp(self):
-        with connections['repository'].cursor() as cursor:
-            cursor.execute(InsertQuery(
-                [
-                    {
-                        'parent': '/rest',  # break out of the test-test context
-                        'doc_type': None,
-                        'fields': {
-                        },
-                        'slug': 'test-test'
-                    }
-                ]
-            ))
-            print(cursor)
-        call_command('migrate', '--database', 'repository', 'testapp')
-        self.maxDiff = None
-
-    def tearDown(self):
-        for conn in connections.databases:
-            with connections[conn].cursor() as cursor:
-                try:
-                    cursor.cursor.connection.delete_all_data()
-                except:
-                    pass
+class TestSimpleStoreFetch(FedoraTestBase):
 
     def test_simple_store_fetch(self):
         o1 = Simple.objects.create(text='Hello world 1')
