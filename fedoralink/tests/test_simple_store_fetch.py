@@ -168,3 +168,12 @@ class TestSimpleStoreFetch(TransactionTestCase):
         self.assertEqual(str(objs[0].fedora_meta[CESNET.b]), obj.b)
         self.assertEqual(objs[0].id, obj.id)
         self.assertEqual(objs[0].fedora_id, obj.fedora_id)
+        self.assertTrue(objs[0].fedora_meta.from_search)
+
+        obj2 = Complex.objects.get(fedora_id=obj.fedora_id)
+
+        self.assertEqual(str(obj2.fedora_meta[CESNET.a]), obj.a)
+        self.assertEqual(str(obj2.fedora_meta[CESNET.b]), obj.b)
+        self.assertEqual(obj2.id, obj.id)
+        self.assertEqual(obj2.fedora_id, obj.fedora_id)
+        self.assertFalse(objs[0].fedora_meta.from_search)

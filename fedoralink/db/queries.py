@@ -7,8 +7,9 @@ from fedoralink.models import FedoraResourceUrlField
 
 
 class FedoraMetadata:
-    def __init__(self, data):
+    def __init__(self, data, from_search):
         self.data = data
+        self.from_search = from_search
 
     def __getitem__(self, item):
         if isinstance(item, URIRef):
@@ -77,7 +78,7 @@ class SelectScanner:
 
     def get_column_data(self, data, source, column):
         if isinstance(column[3], FedoraMetadataAnnotation):
-            return FedoraMetadata({search2rdf(k) : v for k, v in source.items()})
+            return FedoraMetadata({search2rdf(k) : v for k, v in source.items()}, from_search=True)
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
