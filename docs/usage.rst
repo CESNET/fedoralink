@@ -16,16 +16,19 @@ Every object in Fedora can be accessed via FedoraObject class.
 Instances of the object have the following properties:
 
  * ``id`` is the result of a mapping of Fedora object's URL into an integer. For details see :ref:`mapping-ids`.
- * ``fedora_id`` is the URL of a Fedora object.
- * ``fedora_meta`` is a dictionary-like object with string keys and values represented as a list of rdflib Literal classes.
+ * ``fedora_id`` is the URL of a Fedora object, an instance of :py:obj:`rdflib.term.URIRef`.
+ * ``fedora_meta`` is a dictionary-like object with URIRef keys and values represented
+   as a list of :py:obj:`rdflib.term.Literal` or :py:obj:`rdflib.term.URIref` classes.
  * ``fedora_children`` is a manager returning child nodes of the current resource.
 
 
 Retrieving objects by Fedora path
 =================================
 
-Use ``FedoraObject.objects.filter(pk='...')`` or ``FedoraObject.objects.get(pk='...')`` constructs
-to access a Fedora repository object.
+Use ``FedoraObject.objects.filter(fedora_id='...')`` or ``FedoraObject.objects.get(fedora_id='...')`` constructs
+to access a Fedora repository object. You can also use
+``FedoraObject.objects.filter(pk='...')`` or ``FedoraObject.objects.get(pk='...')`` though this is slightly less
+efficient.
 
 Example::
 
@@ -44,6 +47,13 @@ Example::
     for child in root.fedora_children.all():
         print("    ", child.fedora_id)
 
+Test case:
+    :file:`fedoralink.tests.test_by_pk`
+
+Note:
+
+    ``Q(pk=...)`` is not supported, only ``Q(fedora_id=...)`` can be used
+    to query by object's uri within ``Q`` construct.
 
 Retrieving the objects from Elasticsearch instead of Fedora
 -----------------------------------------------------------

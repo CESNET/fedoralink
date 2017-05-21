@@ -1,7 +1,8 @@
 import dateutil.parser
-from rdflib import URIRef
+from rdflib import URIRef, Literal
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
+from fedoralink.db.rdf import RDFMetadata
 from fedoralink.db.utils import search2rdf
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraResourceUrlField
@@ -9,14 +10,30 @@ from fedoralink.models import FedoraResourceUrlField
 
 class FedoraMetadata:
     def __init__(self, data, from_search):
+        if isinstance(data, RDFMetadata):
+            self.data = data
+        else:
+            self.data = {
+                k:self._convert(v) for k, v in data.items()
+            }
         self.data = data
         self.from_search = from_search
 
     def __getitem__(self, item):
-        if isinstance(item, URIRef):
-            item = str(item)
+        if not isinstance(item, URIRef):
+            item = URIRef(item)
         print(self.data)
         return self.data[item]
+
+    def _convert(self, val):
+        if isinstance(val, list):
+            ret = []
+            for x in val:
+                ret.extend(self._convert(x))
+            return ret
+        if isinstance(val, URIRef) or isinstance(val, Literal):
+            return [val]
+        return [Literal(val)]
 
 
 class SearchQuery:
@@ -87,7 +104,7 @@ class SelectScanner:
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
-            return data['_id']
+            return URIRef(data['_id'])
         return source[column[1]]
 
     def _apply_mapping(self, mapping, key, val):

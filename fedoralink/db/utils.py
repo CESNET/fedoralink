@@ -1,6 +1,6 @@
 import re
 
-from fedoralink.fedorans import NAMESPACES
+from rdflib import URIRef
 
 
 def rdf2search(rdf_name):
@@ -24,4 +24,4 @@ def search2rdf(search_name):
         else:
             rev = rev[2][1:]
             ret.append(chr(int(rev, 16)))
-    return ''.join(ret)
+    return URIRef(''.join(ret))

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.apps import AppConfig
 from django.utils.translation import ugettext_lazy as _
+from rdflib import URIRef
 
 from fedoralink.idmapping import id2url
 
@@ -56,7 +57,7 @@ def fix_fedora_id(sender, **kwargs):
     if not created:
         return              # URI does not change on updates ...
     if hasattr(sender._meta, 'fedora_options'):
-        inst.fedora_id = id2url(inst.id)
+        inst.fedora_id = URIRef(id2url(inst.id))
 
 
 class ApplicationConfig(AppConfig):

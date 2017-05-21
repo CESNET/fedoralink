@@ -1,9 +1,12 @@
+import unittest.util
+
 import elasticsearch.helpers
 import time
 from django.core.management import call_command
 from django.db import connections
 from django.db.models import Q, F, Value, CharField
 from django.test import TransactionTestCase
+from rdflib import URIRef
 
 from fedoralink.db.queries import InsertQuery
 
@@ -16,6 +19,8 @@ from fedoralink.tests.testserver.testapp.models import Simple, Complex
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
+
+unittest.util._MAX_LENGTH=2000
 
 
 class TestSimpleStoreFetch(TransactionTestCase):
@@ -34,6 +39,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
             ))
             print(cursor)
         call_command('migrate', '--database', 'repository', 'testapp')
+        self.maxDiff = None
 
     def test_simple_store_fetch(self):
         o1 = Simple.objects.create(text='Hello world 1')
@@ -164,16 +170,18 @@ class TestSimpleStoreFetch(TransactionTestCase):
         })
         objs = list(objs)
         self.assertEqual(1, len(objs), 'Should have got only one object')
-        self.assertEqual(str(objs[0].fedora_meta[CESNET.a]), obj.a)
-        self.assertEqual(str(objs[0].fedora_meta[CESNET.b]), obj.b)
+        self.assertEqual(str(objs[0].fedora_meta[CESNET.a][0]), obj.a)
+        self.assertEqual(str(objs[0].fedora_meta[CESNET.b][0]), obj.b)
         self.assertEqual(objs[0].id, obj.id)
+        self.assertIsInstance(obj.fedora_id, URIRef)
+        self.assertIsInstance(objs[0].fedora_id, URIRef)
         self.assertEqual(objs[0].fedora_id, obj.fedora_id)
         self.assertTrue(objs[0].fedora_meta.from_search)
 
         obj2 = Complex.objects.get(fedora_id=obj.fedora_id)
 
-        self.assertEqual(str(obj2.fedora_meta[CESNET.a]), obj.a)
-        self.assertEqual(str(obj2.fedora_meta[CESNET.b]), obj.b)
+        self.assertEqual(str(obj2.fedora_meta[CESNET.a][0]), obj.a)
+        self.assertEqual(str(obj2.fedora_meta[CESNET.b][0]), obj.b)
         self.assertEqual(obj2.id, obj.id)
         self.assertEqual(obj2.fedora_id, obj.fedora_id)
-        self.assertFalse(objs[0].fedora_meta.from_search)
+        self.assertFalse(obj2.fedora_meta.from_search)

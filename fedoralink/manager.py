@@ -1,9 +1,12 @@
+import numbers
+
 from django.core.exceptions import FieldError
 from django.db.models import QuerySet, sql, CharField, TextField
 from django.db.models.manager import BaseManager
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
 from fedoralink.fedora_meta import FedoraFieldOptions
+from fedoralink.idmapping import url2id
 
 
 class GenericFedoraField(TextField):
@@ -37,6 +40,13 @@ class FedoraQuerySet(QuerySet):
         if not query:
             query = FedoraQuery(model)
         super().__init__(model, query, using, hints)
+
+    def get(self, *args, **kwargs):
+        if 'pk' in kwargs and not isinstance(kwargs['pk'], numbers.Number):
+            kwargs['pk'] = url2id(kwargs['pk'])
+        if 'id' in kwargs and not isinstance(kwargs['id'], numbers.Number):
+            kwargs['pk'] = url2id(kwargs['id'])
+        return super().get(*args, **kwargs)
 
 
 class FedoraManager(BaseManager.from_queryset(FedoraQuerySet)):

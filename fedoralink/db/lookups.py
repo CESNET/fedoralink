@@ -20,9 +20,10 @@ class Node:
 
 
 class Column(Node):
-    def __init__(self, rdf_name, search_name):
+    def __init__(self, rdf_name, search_name, django_field):
         self.rdf_name = rdf_name
         self.search_name = search_name
+        self.django_field = django_field
 
 
 class Operation(Node):
@@ -36,8 +37,8 @@ class Operation(Node):
 
 
 class FedoraIdColumn(Column):
-    def __init__(self):
-        super().__init__('_id', '_id')
+    def __init__(self, field):
+        super().__init__('_id', '_id', field)
 
 
 def col_lookup(self, compiler, connection):
@@ -47,9 +48,9 @@ def col_lookup(self, compiler, connection):
     connection.prepare_fedora_options(opts)
     if not hasattr(field, 'fedora_options'):
         if field.column == 'fedora_id':
-            return FedoraIdColumn(), []
+            return FedoraIdColumn(field), []
     fedora_field_options = field.fedora_options
-    return Column(fedora_field_options.rdf_name, fedora_field_options.search_name), []
+    return Column(fedora_field_options.rdf_name, fedora_field_options.search_name, field), []
 
 
 def exact_lookup(self, compiler, connection):

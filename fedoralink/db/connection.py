@@ -1,13 +1,14 @@
 import logging
 
 import django.db.models.lookups
+from django.db.models import AutoField
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
 
-from fedoralink.db.lookups import FedoraIdColumn
+from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk
 from fedoralink.db.utils import rdf2search
-from fedoralink.idmapping import url2id
+from fedoralink.idmapping import url2id, id2url
 from fedoralink.models import FedoraOptions, FedoraObject
 from .elasticsearch_connection import ElasticsearchConnection
 from .fedora_connection import FedoraConnection
@@ -16,7 +17,6 @@ log = logging.getLogger(__file__)
 
 
 class FedoraWithElasticConnection:
-
     def __init__(self, *args, **kwargs):
         self.fedora_connection = FedoraConnection(*args, **kwargs)
         self.elasticsearch_connection = ElasticsearchConnection(*args, **kwargs)
@@ -48,16 +48,16 @@ class FedoraWithElasticConnection:
         FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
         if not FedoraObject.objects.filter(fedora_id=django_model._meta.db_table).exists():
             self.fedora_connection.create_resources(InsertQuery(
-                    [
-                        {
-                            'parent': None,
-                            'fields': {
-                            },
-                            'slug': django_model._meta.db_table,
-                            'doc_type': None
-                        }
-                    ]
-                ))
+                [
+                    {
+                        'parent': None,
+                        'fields': {
+                        },
+                        'slug': django_model._meta.db_table,
+                        'doc_type': None
+                    }
+                ]
+            ))
 
         self.elasticsearch_connection.update_elasticsearch_index(django_model)
 
@@ -123,7 +123,14 @@ class FedoraWithElasticConnection:
         return opts.fedora_options
 
     def is_fedora_query_by_pk(self, query, compiler, connection):
-        if query.annotation_select or query.annotations or query.extra or query.extra_order_by \
+        has_annotations = (
+            query.annotations and
+            (
+                len(query.annotations) > 1 or
+                not isinstance(list(query.annotations.values())[0], FedoraMetadataAnnotation)
+            )
+        )
+        if has_annotations or query.extra or query.extra_order_by \
                 or query.extra_select or query.extra_tables or query.select:
             return None
         if not isinstance(query.where, WhereNode):
@@ -143,6 +150,8 @@ class FedoraWithElasticConnection:
                                      'must be an instance of string or URIRef')
 
             return str(rhs)
+        # someone is searching via .get(pk=...) or .get(id=...)
+        elif isinstance(lhs.django_field, AutoField) and lhs.django_field.model._meta.pk == lhs.django_field:
+            return id2url(rhs)
 
         return None
-

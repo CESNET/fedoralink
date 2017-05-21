@@ -6,14 +6,14 @@ from urllib.parse import urljoin
 import io
 import rdflib
 import requests
-from rdflib import Literal, XSD
+from rdflib import Literal, XSD, URIRef
 from requests import RequestException
 from requests.auth import HTTPBasicAuth
 
 from fedoralink.authentication.as_user import fedora_auth_local
 from fedoralink.db.exceptions import RepositoryException
-from fedoralink.db.lookups import get_column_ids, FedoraIdColumn
-from fedoralink.db.queries import FedoraResourceScanner
+from fedoralink.db.lookups import get_column_ids, FedoraIdColumn, FedoraMetadataAnnotation
+from fedoralink.db.queries import FedoraResourceScanner, FedoraMetadata
 from fedoralink.db.rdf import RDFMetadata
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
@@ -208,8 +208,10 @@ class FedoraConnection(object):
                 ret.append(url2id(obj.id))
             elif isinstance(fedora_col, FedoraIdColumn):
                 ret.append(obj.id)
+            elif isinstance(fedora_col, FedoraMetadataAnnotation):
+                ret.append(FedoraMetadata(obj, from_search=False))
             elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField):
-                field_data = obj[field_name]
+                field_data = obj[URIRef(field_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
