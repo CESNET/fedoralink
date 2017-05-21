@@ -1,7 +1,9 @@
 import json
 import logging
 import urllib.parse
+from random import random
 
+import cachetools
 import django.db.models.fields as django_fields
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
@@ -19,10 +21,66 @@ class IndexMappingError(FedoraError):
     pass
 
 
+class FuzzyTTLCache(cachetools.TTLCache):
+    """
+    cachetools.TTLCache has a ttl as one of the parameters. However if we fetched objects
+    of different types during a single FedoraObject.objects.filter(...) call, they would be removed from the cache
+    at the same time. That would mean that after that time a similar request would need to update all the cached 
+    mappings. To distribute mapping requests in time, FuzzyTTL does not give a single ttl value but a value 
+    perturbed by a random delta.
+    """
+    def __init__(self, maxsize, ttl, delta):
+        super().__init__(maxsize=maxsize, ttl=ttl)
+        self.__base_ttl  = ttl
+        self.__ttl_delta = min(ttl-1, delta)
+
+    def __setitem__(self, key, value, cache_setitem=cachetools.Cache.__setitem__):
+        self.__ttl = self.__base_ttl + (random()-0.5) * 2 * self.__ttl_delta
+        super().__setitem__(key, value, cache_setitem)
+
+
+class ElasticsearchMappingCache:
+    """
+    When data are received from elasticsearch they are serialized as json that does not have any types
+    apart from json default - number, string, bool, null. To be able to deserialize for example dates 
+    or discriminate between floats and ints, we need to fetch the actual mapping which gives us the
+    correct types.
+    
+    This class is a cache of fetched mappings indexed by doc_type
+    """
+    def __init__(self, connection):
+        self.mapping_cache = FuzzyTTLCache(maxsize=512, ttl=5*60, delta=60)
+        self.connection = connection
+
+    def __delitem__(self, doc_type):
+        try:
+            del self.mapping_cache[doc_type]
+        except KeyError:
+            pass
+
+    def __getitem__(self, doc_type):
+        try:
+            return self.mapping_cache[doc_type]
+        except KeyError:
+            pass
+
+        mapping = self.connection.elasticsearch.indices.get_mapping(
+            index=self.connection.elasticsearch_index_name,
+            doc_type=doc_type)
+
+        if self.connection.elasticsearch_index_name not in mapping:
+            raise KeyError('Mapping not in the elasticsearch')
+        mapping = mapping[self.connection.elasticsearch_index_name]
+        mapping = mapping['mappings'][doc_type]['properties']
+        self.mapping_cache[doc_type] = mapping
+        return mapping
+
+
 class ElasticsearchConnection(object):
     def __init__(self, *args, **kwargs):
         urls = kwargs['elasticsearch_url']
         self.namespace_config = kwargs['namespace_config']
+        self.mapping_cache = ElasticsearchMappingCache(self)
 
         if isinstance(urls, str):
             urls = [urls]
@@ -95,6 +153,7 @@ class ElasticsearchConnection(object):
             self.elasticsearch.indices.put_mapping(index=self.elasticsearch_index_name, doc_type=doc_type, body={
                 'properties': new_mapping
             })
+            del self.mapping_cache[doc_type]
 
     @staticmethod
     def _fields_to_mapping(fields):
@@ -204,7 +263,8 @@ class ElasticsearchConnection(object):
                 preserve_order=True,
                 index=self.elasticsearch_index_name,
                 from_=query.start),
-            query.columns, query.count)
+            query.columns, query.count,
+            self.mapping_cache)
 
     def index_resources(self, query, ids):
         for obj, obj_id in zip(query.objects, ids):

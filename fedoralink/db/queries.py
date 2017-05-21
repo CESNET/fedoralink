@@ -1,3 +1,4 @@
+import dateutil.parser
 from rdflib import URIRef
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
@@ -57,11 +58,12 @@ class InsertScanner:
 
 
 class SelectScanner:
-    def __init__(self, scanner, columns, count):
+    def __init__(self, scanner, columns, count, mapping_cache):
         self.scanner = scanner
         self.columns = columns
         self.count = count
         self.iter = iter(self.scanner)
+        self.mapping_cache = mapping_cache
 
     def __next__(self):
         if self.count:
@@ -72,18 +74,32 @@ class SelectScanner:
         data = next(self.iter)
         print(self, data['_source'])
         src = data['_source']
+        mapping = self.mapping_cache[data['_type']]
         return [
-            self.get_column_data(data, src, x) for x in self.columns
+            self.get_column_data(data, src, x, mapping) for x in self.columns
         ]
 
-    def get_column_data(self, data, source, column):
+    def get_column_data(self, data, source, column, mapping):
         if isinstance(column[3], FedoraMetadataAnnotation):
-            return FedoraMetadata({search2rdf(k) : v for k, v in source.items()}, from_search=True)
+            return FedoraMetadata({
+                search2rdf(k) : self._apply_mapping(mapping, k, v) for k, v in source.items()
+            }, from_search=True)
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
             return data['_id']
         return source[column[1]]
+
+    def _apply_mapping(self, mapping, key, val):
+        mapping = mapping.get(key, None)
+        if not mapping:
+            return val
+        _type = mapping['type']
+        if _type == 'keyword':
+            return val
+        if _type == 'date':
+            return dateutil.parser.parse(val)
+        raise NotImplementedError('Deserialization of type %s not yet implemented' % _type)
 
 
 class FedoraResourceScanner:

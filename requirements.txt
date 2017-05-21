@@ -9,3 +9,4 @@ django-bootstrap-pagination
 python-dateutil
 elasticsearch
 -e git+https://github.com/mesemus/autobreadcrumbs.git#egg=autobreadcrumbs
+cachetools
