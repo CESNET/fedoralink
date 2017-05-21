@@ -41,6 +41,14 @@ class TestSimpleStoreFetch(TransactionTestCase):
         call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
 
+    def tearDown(self):
+        for conn in connections.databases:
+            with connections[conn].cursor() as cursor:
+                try:
+                    cursor.cursor.connection.delete_all_data()
+                except:
+                    pass
+
     def test_simple_store_fetch(self):
         o1 = Simple.objects.create(text='Hello world 1')
         self.assertIsNotNone(o1.id, 'Stored object must have an id')
@@ -52,6 +60,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
 
     def test_query_by_string(self):
         o1 = Simple.objects.create(text='Hello world 1')
+        time.sleep(5)
         o2 = Simple.objects.get(text='Hello world 1')
         self.assertEqual(o1.text, o2.text, 'The text of the stored and retrieved objects must match')
         self.assertEqual(o1.id, o2.id, 'The id of the stored and retrieved objects must match')
@@ -62,7 +71,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
         for i in range(10):
             for j in range(10):
                 objs.append(Complex.objects.create(a='%s' % i, b='%s' % j))
-
+        time.sleep(5)
         for i in range(10):
             for j in range(10):
                 objs_len = len(Complex.objects.filter(a='%s' % i, b='%s' % j))
@@ -146,6 +155,7 @@ class TestSimpleStoreFetch(TransactionTestCase):
                     search = es.search(
                         body=query,
                         index=elasticsearch_index_name,
+                        size=100
                     )
                     search = search['hits']['hits']
                     search_count = len(search)
