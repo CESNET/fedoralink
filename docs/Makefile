@@ -15,7 +15,10 @@ help:
 watch:
 	sphinx-autobuild . _build/html -p 9000
 
-.PHONY: help Makefile watch
+api:
+	sphinx-apidoc -e -f -o api .. ../fedoralink/tests ../fedoralink_ui ../setup.py
+
+.PHONY: help Makefile watch api
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

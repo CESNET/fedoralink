@@ -34,6 +34,7 @@
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.intersphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -157,5 +158,19 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+# -- reference to external modules
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.5', None),
+    'django': ('http://django.readthedocs.org/en/latest/', None),
+    'rdflib': ('https://rdflib.readthedocs.io/en/stable/', None)
+}
 
+# -- Django
+
+import sys
+import os.path
+sys.path.insert(0, os.path.abspath('..'))
+os.environ['DJANGO_SETTINGS_MODULE'] = 'fedoralink.tests.testserver.settings'
+import django
+django.setup()
 

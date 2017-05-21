@@ -6,6 +6,11 @@ from fedoralink.idmapping import id2url
 
 
 def upload_binary_files(sender, **kwargs):
+    """
+    Helper method that sits on the post_save signal to save the binary content of a resource
+    
+    TODO: not implemented yet !!! 
+    """
     pass
     # from fedoralink.models import UploadedFileStream
     # from fedoralink.indexer.models import fedoralink_clear_streams
@@ -38,6 +43,14 @@ def upload_binary_files(sender, **kwargs):
 
 
 def fix_fedora_id(sender, **kwargs):
+    """
+     A helper method sitting on :py:obj:`django.db.models.signals.post_save` that is responsible for setting up 
+     the fedora_id field after the resource
+     has been created. The fedora_id is the url path of the resource in Fedora Repository and being a string, it can
+     not be put directly into Django's AutoField. After .save(), django can retrieve only the pk, which in case of 
+     fedoralink is the real url serialized into a big integer. This method takes this integer, runs it through id2url 
+     and puts the resulting string into inst.fedora_id
+    """
     inst = kwargs['instance']
     created = kwargs['created']
     if not created:
@@ -47,18 +60,19 @@ def fix_fedora_id(sender, **kwargs):
 
 
 class ApplicationConfig(AppConfig):
+    """
+        Application config for fedoralink
+    """
     name = 'fedoralink'
     verbose_name = _("fedoralink")
 
     def ready(self):
+        """
+        Called after the apps have been loaded. Sets up handlers for uploading binary content to Fedora repository,
+        connects the :func:`fix_fedora_id` hook and finally adds fedoralink vendor to various django lookup functions (
+        such as __exact etc.). For details see :func:`fedoralink.db.lookups.add_vendor_to_lookups`
+        """
         super().ready()
-
-        # make sure common namespaces are loaded
-        # noinspection PyUnresolvedReferences
-        # TODO: import fedoralink.common_namespaces.dc
-
-        # noinspection PyUnresolvedReferences
-        # TODO: import fedoralink.common_namespaces.web_acl.models
 
         from django.db.models.signals import post_save
 
