@@ -11,6 +11,7 @@ from elasticsearch import Elasticsearch
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
+from fedoralink.idmapping import id2url
 from fedoralink.models import FedoraResourceUrlField, FedoraObject
 from . import FedoraError
 
@@ -300,9 +301,19 @@ def convert_tree_to_elastic(tree):
                 }
             }
         if tree.type == 'exact':
+            lhs = tree.operands[0]
             rhs = tree.operands[1]
             if isinstance(rhs, Node):
                 rhs = convert_tree_to_elastic(rhs)
+            if isinstance(lhs, Column):
+                if lhs.django_field.model._meta.pk == lhs.django_field:
+                    if isinstance(rhs, int):
+                        rhs = id2url(rhs)
+                        return {
+                            'term': {
+                                '_id': rhs
+                            }
+                        }
             return {
                 'term': {
                     convert_tree_to_elastic(tree.operands[0]): rhs

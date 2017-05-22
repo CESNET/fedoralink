@@ -21,16 +21,16 @@ class TestByPk(FedoraTestBase):
     def test_fedora_id(self):
         o2 = Simple.objects.get(fedora_id=self.object.fedora_id)
         self.assertEqual(self.object.text, o2.text, 'The text of the stored and retrieved objects must match')
-        self.assertFalse(o2.fedora_metadata.from_search)
+        self.assertFalse(o2.fedora_meta.from_search)
 
 
     def test_pk(self):
         o2 = Simple.objects.get(pk=self.object.fedora_id)
         self.assertEqual(self.object.text, o2.text, 'The text of the stored and retrieved objects must match')
-        self.assertFalse(o2.fedora_metadata.from_search)
+        self.assertFalse(o2.fedora_meta.from_search)
 
     def test_integer_pk(self):
         o2 = Simple.objects.get(pk=self.object.pk)
         self.assertEqual(self.object.text, o2.text, 'The text of the stored and retrieved objects must match')
-        self.assertFalse(o2.fedora_metadata.from_search)
+        self.assertFalse(o2.fedora_meta.from_search)
 

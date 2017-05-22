@@ -3,8 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Fedoralink's documentation!
-======================================
+Fedoralink's documentation!
+===========================
+
+*Note:* This documentation is relevant only to the upcoming version stored at
+https://github.com/CESNET/fedoralink/tree/wip/v3   (branch wip/v3) !
 
 .. toctree::
    :maxdepth: 2

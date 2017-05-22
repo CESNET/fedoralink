@@ -55,8 +55,8 @@ Note:
     ``Q(pk=...)`` is not supported, only ``Q(fedora_id=...)`` can be used
     to query by object's uri within ``Q`` construct.
 
-Retrieving the objects from Elasticsearch instead of Fedora
------------------------------------------------------------
+Retrieving objects by url from Elasticsearch instead of Fedora
+--------------------------------------------------------------
 
 The query above is quite slow because Fedora performs a lot of checks before the data are returned (for example,
 WebAC). Sometimes it makes sense to fetch the data from Elasticsearch.
@@ -72,14 +72,9 @@ Example::
    # without calling Elasticsearch first
    root = FedoraObject.objects.via(ELASTICSEARCH).get(pk='')
 
-In this example we suppose that the root object is a dc:object and that there is a ``doc_type`` called ``dcobjects``
-within Elasticsearch index.
 
 Note: Django's ``using`` and ``via`` are similar concepts: ``using`` selects a database on which an operation should
 be performed, ``via`` switches the implementation of the search if applicable.
-
-Note: If you use typed approach (see :ref:`typed-access`), doc_type mapping is created automatically for you,
-documents are automatically indexed and the ``via`` statement is added automatically on the model's manager.
 
 Test case:
     :file:`fedoralink.tests.test_pk_via_elasticsearch`
@@ -88,7 +83,7 @@ Test case:
 Querying objects by stored metadata
 ===================================
 
-Even in the untyped objects one can query objects by stored metadata. As the name of the metadatum is an RDF predicate
+Even with untyped objects one can search by stored metadata. As the name of the metadatum is an RDF predicate
 which is an URI, one can not use directly ``FedoraObject.objects.filter(http://...#organisation='CESNET')``.
 Use the ``**`` operator to pass metadata names and values. The same holds also for ``Q`` constructs.
 
