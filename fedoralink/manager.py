@@ -10,8 +10,8 @@ from fedoralink.fedora_meta import FedoraFieldOptions
 from fedoralink.idmapping import url2id
 
 # constants to be used in FedoraObject.objects.via(...) call
-REPOSITORY    = 1
-ELASTICSEARCH = 2
+FEDORA_REPOSITORY    = 1
+ELASTICSEARCH        = 2
 
 
 class GenericFedoraField(TextField):

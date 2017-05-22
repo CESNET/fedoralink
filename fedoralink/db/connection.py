@@ -9,7 +9,7 @@ from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk
 from fedoralink.db.utils import rdf2search
 from fedoralink.idmapping import url2id, id2url
-from fedoralink.manager import ELASTICSEARCH
+from fedoralink.manager import FEDORA_REPOSITORY
 from fedoralink.models import FedoraOptions, FedoraObject
 from .elasticsearch_connection import ElasticsearchConnection
 from .fedora_connection import FedoraConnection
@@ -74,7 +74,8 @@ class FedoraWithElasticConnection:
         distinct_fields = compiler.get_distinct()
 
         pk = self.is_fedora_query_by_pk(query, compiler, connection)
-        if pk and getattr(query, 'fedora_via') != ELASTICSEARCH :
+        fedora_via = getattr(query, 'fedora_via', None)
+        if pk and (fedora_via is None or fedora_via == FEDORA_REPOSITORY) :
             return FedoraQueryByPk(query, pk, compiler), []
         return self.elasticsearch_connection.get_query_representation(query, compiler, extra_select,
                                                                       order_by, group_by, distinct_fields)

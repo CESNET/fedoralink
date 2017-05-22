@@ -15,11 +15,13 @@ where the model is too complex/variable to be meaningfully represented as django
 Every object in Fedora can be accessed via FedoraObject class.
 Instances of the object have the following properties:
 
- * ``id`` is the result of a mapping of Fedora object's URL into an integer. For details see :ref:`mapping-ids`.
- * ``fedora_id`` is the URL of a Fedora object, an instance of :py:obj:`rdflib.term.URIRef`.
- * ``fedora_meta`` is a dictionary-like object with URIRef keys and values represented
+ * ``id`` - the result of a mapping of Fedora object's URL into an integer. For details see :ref:`mapping-ids`.
+ * ``fedora_id`` - the URL of a Fedora object, an instance of :py:obj:`rdflib.term.URIRef`.
+ * ``fedora_meta`` - a dictionary-like object with URIRef keys and values represented
    as a list of :py:obj:`rdflib.term.Literal` or :py:obj:`rdflib.term.URIref` classes.
- * ``fedora_children`` is a manager returning child nodes of the current resource.
+ * ``fedora_children`` - a manager returning child nodes of the current resource.
+ * ``fedora_field_tracker`` - an instance of :py:obj:`model_utils.FieldTracker` that keeps the changes performed
+   on model instance, so that only the changed properties get serialized to Fedora.
 
 
 Retrieving objects by Fedora path

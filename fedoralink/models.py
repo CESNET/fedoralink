@@ -1,7 +1,9 @@
 import logging
+import traceback
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from model_utils import FieldTracker
 
 from fedoralink.db.utils import rdf2search
 from fedoralink.fedora_meta import FedoraOptions
@@ -24,12 +26,19 @@ def fedora(namespace=None, rdf_types=None, field_options=None):
         fld = FedoraResourceUrlField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')
 
+        # add FieldTracker field
+        try:
+            fld = FieldTracker()
+            fld.contribute_to_class(clz, 'fedora_field_tracker')
+        except:
+            traceback.print_exc()
+
         # replace manager with FedoraManager
         manager = FedoraManager()
         clz._meta.local_managers.clear()
         manager.contribute_to_class(clz, 'objects')
 
-        # TODO: implement metadata and children
+        # TODO: implement children
         # fld = models.CharField(required=False, verbose_name=_('Fedora metadata'))
         # fld.contribute_to_class(clz, 'fedora_meta')
         #
