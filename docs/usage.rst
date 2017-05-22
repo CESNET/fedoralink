@@ -62,14 +62,15 @@ The query above is quite slow because Fedora performs a lot of checks before the
 WebAC). Sometimes it makes sense to fetch the data from Elasticsearch.
 
 The manager on FedoraObject and on any model annotated with @fedora gives a ``.via(...)`` call that
-can be currently called either with ``REPOSITORY`` (the default) or with a ``doc_type`` within
-the Elasticsearch index.
+can be currently called either with :data:`fedoralink.manager.REPOSITORY` (the default) or with
+:data:`fedoralink.manager.ELASTICSEARCH`
+to search within the Elasticsearch index.
 
 Example::
 
    # get the root collection from elasticsearch,
    # without calling Elasticsearch first
-   root = FedoraObject.objects.via('dcobjects').get(pk='')
+   root = FedoraObject.objects.via(ELASTICSEARCH).get(pk='')
 
 In this example we suppose that the root object is a dc:object and that there is a ``doc_type`` called ``dcobjects``
 within Elasticsearch index.
@@ -79,6 +80,9 @@ be performed, ``via`` switches the implementation of the search if applicable.
 
 Note: If you use typed approach (see :ref:`typed-access`), doc_type mapping is created automatically for you,
 documents are automatically indexed and the ``via`` statement is added automatically on the model's manager.
+
+Test case:
+    :file:`fedoralink.tests.test_pk_via_elasticsearch`
 
 
 Querying objects by stored metadata
@@ -93,6 +97,10 @@ For example, the following filter can be used to filter all projects with 'CESNE
 
   FedoraObject.objects.via('project').
       filter(**{'http://...#organization': 'CESNET'})
+
+Test case:
+    :file:`fedoralink.tests.test_simple_store_fetch`
+
 
 
 .. _typed-access:
@@ -138,3 +146,7 @@ After the model is created, run::
 
     python manage.py makemigrations <myapp>
     python manage.py migrate --database repository <myapp>
+
+
+Test case:
+    :file:`fedoralink.tests.test_migrate`
