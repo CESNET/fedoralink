@@ -280,6 +280,11 @@ class ElasticsearchConnection(object):
         if self.elasticsearch.indices.exists(self.elasticsearch_index_name):
             self.elasticsearch.indices.delete(index=self.elasticsearch_index_name)
 
+    def update(self, query):
+        serialized_object = {k[1]: v for k, v in query.update_data.items()}
+        self.elasticsearch.update(index=self.elasticsearch_index_name,
+                                  doc_type=query.patched_instance._meta.db_table,
+                                  id=query.pk, body={'doc': serialized_object})
 
 def convert_tree_to_elastic(tree):
     if isinstance(tree, Operation):

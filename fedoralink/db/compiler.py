@@ -29,15 +29,17 @@ class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
 
 
 class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
-    def execute_sql(self):
+    def execute_sql(self, *args, **kwargs):
         raise NotImplementedError()
 
 
 class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
-    def execute_sql(self):
-        raise NotImplementedError()
+    def as_sql(self):
+        with self.connection.cursor() as cursor:
+            return cursor.connection.get_update_representation(self.query, self, self.connection)
+
 
 
 class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):
-    def execute_sql(self):
+    def execute_sql(self, *args, **kwargs):
         raise NotImplementedError()

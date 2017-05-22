@@ -4,6 +4,8 @@ from enum import Enum
 from django.core.exceptions import FieldError
 from django.db.models import QuerySet, sql, CharField, TextField
 from django.db.models.manager import BaseManager
+from django.db.models.sql import UpdateQuery
+from rdflib import URIRef
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
 from fedoralink.fedora_meta import FedoraFieldOptions
@@ -22,11 +24,42 @@ class GenericFedoraField(TextField):
         self.fedora_options = FedoraFieldOptions(field=self, rdf_name=rdf_name)
 
 
+class DjangoMetaProxy:
+    def __init__(self, meta):
+        object.__setattr__(self, "_proxied_meta", meta)
+        self._proxied_meta = meta
+
+    def __getattribute__(self, item):
+        try:
+            return object.__getattribute__(self, item)
+        except:
+            pass
+        print("meta proxy getattr", item)
+        return getattr(object.__getattribute__(self, '_proxied_meta'), item)
+
+    def __setattr__(self, key, value):
+        print("meta proxy setattr", key, value)
+        return setattr(object.__getattribute__(self, '_proxied_meta'), key, value)
+
+    def get_field(self, field_name):
+        if isinstance(field_name, URIRef):
+            return GenericFedoraField(self.model, field_name)
+        return getattr(object.__getattribute__(self, '_proxied_meta'), 'get_field')(field_name)
+
+
+class PatchedUpdateQuery(UpdateQuery):
+
+    def get_meta(self):
+        return DjangoMetaProxy(super().get_meta())
+
+
 class FedoraQuery(sql.Query):
 
     def __init__(self, model):
         super().__init__(model)
         self.fedora_via = None
+        self.previous_update_values = None
+        self.patched_instance = None
 
     def names_to_path(self, names, opts, allow_many=True, fail_on_missing=False):
         try:
@@ -44,9 +77,13 @@ class FedoraQuery(sql.Query):
         # path, final_field, targets, extra data after __ (lookups & transforms)
         return [], field, targets, names[1:]
 
-    def clone(self, *args, **kwargs):
-        ret = super().clone(*args, **kwargs)
+    def clone(self, klass=None, memo=None, **kwargs):
+        if klass is UpdateQuery:
+            klass = PatchedUpdateQuery
+        ret = super().clone(klass, memo, **kwargs)
         ret.fedora_via = self.fedora_via
+        ret.previous_update_values = self.previous_update_values
+        ret.patched_instance = self.patched_instance
         return ret
 
 
@@ -75,6 +112,17 @@ class FedoraQuerySet(QuerySet):
         clone = self._clone()
         clone.query.fedora_via = _via
         return clone
+
+    def set_patch_previous_data(self, previous_update_values):
+        clone = self._clone()
+        clone.query.previous_update_values = previous_update_values
+        return clone
+
+    def set_patched_instance(self, patched_instance):
+        clone = self._clone()
+        clone.query.patched_instance = patched_instance
+        return clone
+
 
 
 class FedoraManager(BaseManager.from_queryset(FedoraQuerySet)):

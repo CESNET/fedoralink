@@ -1,12 +1,13 @@
 import logging
 
 import django.db.models.lookups
+from django.core.exceptions import FieldError
 from django.db.models import AutoField
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
 
 from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
-from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk
+from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk, FedoraUpdateQuery
 from fedoralink.db.utils import rdf2search
 from fedoralink.idmapping import url2id, id2url
 from fedoralink.manager import FEDORA_REPOSITORY
@@ -34,6 +35,11 @@ class FedoraWithElasticConnection:
         self.elasticsearch_connection.index_resources(query, ids)
         return InsertScanner([url2id(object_id) for object_id in ids])
 
+    def execute_update(self, query):
+        self.fedora_connection.update(query)
+        self.elasticsearch_connection.update(query)
+        return 1        # 1 row modified
+
     # noinspection PyUnusedLocal
     def execute(self, query, params=None):
         if isinstance(query, FedoraQueryByPk):
@@ -42,6 +48,8 @@ class FedoraWithElasticConnection:
             return self.elasticsearch_connection.execute_search(query)
         elif isinstance(query, InsertQuery):
             return self.execute_insert(query)
+        elif isinstance(query, FedoraUpdateQuery):
+            return self.execute_update(query)
         else:
             raise NotImplementedError('This type of query is not yet implemented')
 
@@ -80,6 +88,21 @@ class FedoraWithElasticConnection:
         return self.elasticsearch_connection.get_query_representation(query, compiler, extra_select,
                                                                       order_by, group_by, distinct_fields)
 
+    def get_update_representation(self, query, compiler, connection):
+        opts = query.get_meta()
+        FedoraWithElasticConnection.prepare_fedora_options(opts)
+
+        compiler.pre_sql_setup()
+
+        pk = self.is_fedora_query_by_pk(query, compiler, connection)
+        if not pk:
+            raise NotImplementedError('Update defined by custom search is not supported yet. '
+                                      'The only supported update is for objects defined by pk')
+
+        update_data, prev_data = self._object_to_update_data(pk, compiler)
+
+        return FedoraUpdateQuery(pk, update_data, prev_data, compiler.query.patched_instance), []
+
     def commit(self):
         log.warning('commit and rollback are not supported yet on fedora connection ...')
         pass
@@ -117,6 +140,41 @@ class FedoraWithElasticConnection:
         }
         ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [Literal(x) for x in opts.fedora_options.rdf_types]
         return ret
+
+    def _object_to_update_data(self, pk, compiler):
+        ret = {}
+        prev = {}
+        previous_update_values = compiler.query.previous_update_values
+        if previous_update_values is None:
+            fetched_obj = FedoraObject.objects.get(pk=pk)
+            previous_update_values = fetched_obj.fedora_meta
+            compiler.query.previous_update_values = previous_update_values
+            compiler.query.patched_instance = fetched_obj
+        for field, model, val in compiler.query.values:
+            if hasattr(val, 'resolve_expression'):
+                val = val.resolve_expression(compiler.query, allow_joins=False, for_save=True)
+                if val.contains_aggregate:
+                    raise FieldError("Aggregate functions are not allowed in this query")
+            elif hasattr(val, 'prepare_database_save'):
+                if field.remote_field:
+                    val = field.get_db_prep_save(
+                        val.prepare_database_save(field),
+                        connection=compiler.connection,
+                    )
+                else:
+                    raise TypeError(
+                        "Tried to update field %s with a model instance, %r. "
+                        "Use a value compatible with %s."
+                        % (field, val, field.__class__.__name__)
+                    )
+            else:
+                val = field.get_db_prep_save(val, connection=compiler.connection)
+
+            ret[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
+            prev[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = \
+                previous_update_values.get(field.name, None)
+
+        return ret, prev
 
     @staticmethod
     def prepare_fedora_options(opts):

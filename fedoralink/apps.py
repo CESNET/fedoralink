@@ -3,6 +3,7 @@ from django.apps import AppConfig
 from django.utils.translation import ugettext_lazy as _
 from rdflib import URIRef
 
+from fedoralink.db.patches.save_patch import patch_save
 from fedoralink.idmapping import id2url
 
 
@@ -84,3 +85,6 @@ class ApplicationConfig(AppConfig):
 
         from django.db.models.signals import post_save
         post_save.connect(fix_fedora_id, dispatch_uid='fix_fedora_id', weak=False)
+
+        import django.db.models.signals
+        django.db.models.signals.post_init.connect(patch_save)

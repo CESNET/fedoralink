@@ -1,11 +1,13 @@
+import io
 import logging
+import os.path
 import time
 from contextlib import closing
 from urllib.parse import urljoin
 
-import io
 import rdflib
 import requests
+from django.db import models
 from rdflib import Literal, XSD, URIRef
 from requests import RequestException
 from requests.auth import HTTPBasicAuth
@@ -15,11 +17,12 @@ from fedoralink.db.exceptions import RepositoryException
 from fedoralink.db.lookups import get_column_ids, FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import FedoraResourceScanner, FedoraMetadata
 from fedoralink.db.rdf import RDFMetadata
+from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
-from fedoralink.idmapping import url2id
-from .delegated_requests import get, post, put, delete
-from django.db import models
+from .delegated_requests import post, delete
+from urllib.parse import urljoin, quote
+
 
 log = logging.getLogger(__file__)
 
@@ -47,27 +50,40 @@ class FedoraConnection(object):
         :return:                    url if the created resource
         """
         ids = []
-        for object in insert_query.objects:
-            rdf_metadata = RDFMetadata('')
-            for fld, vals in object['fields'].items():
-                if not isinstance(vals, list) and not isinstance(vals, tuple):
-                    vals = [vals]
-                for val in vals:
-                    if not isinstance(val, Literal):
-                        if isinstance(val, str):
-                            val = Literal(val, datatype=XSD.string)
-                        else:
-                            val = Literal(val)
-                    rdf_metadata.add(fld[0], val)
-            parent_url = object['parent']
+        for saved_object in insert_query.objects:
+            rdf_metadata = self.get_object_rdf_metadata('', saved_object['fields'])
+            parent_url = saved_object['parent']
             if not parent_url:
-                parent_url = self.namespace_config.default_parent_for_inserted_object(object)
+                parent_url = self.namespace_config.default_parent_for_inserted_object(saved_object)
             if parent_url is None:
                 parent_url = ''
             parent_url = self._get_request_url(parent_url)
-            created_id = self._create_object_from_metadata(parent_url, rdf_metadata, object.get('slug', None))
+            created_id = self._create_object_from_metadata(parent_url, rdf_metadata, saved_object.get('slug', None))
             ids.append(created_id)
         return ids
+
+    @staticmethod
+    def get_object_rdf_metadata(pk, fields):
+        rdf_metadata = RDFMetadata(pk)
+        for fld, vals in fields.items():
+            cvals = FedoraConnection._cast_to_rdf_value(vals)
+            for val in cvals:
+                rdf_metadata.add(fld[0], val)
+        return rdf_metadata
+
+    @staticmethod
+    def _cast_to_rdf_value(vals):
+        if not isinstance(vals, list) and not isinstance(vals, tuple):
+            vals = [vals]
+        cvals = []
+        for val in vals:
+            if not isinstance(val, Literal):
+                if isinstance(val, str):
+                    val = Literal(val, datatype=XSD.string)
+                else:
+                    val = Literal(val)
+            cvals.append(val)
+        return cvals
 
     def _create_object_from_metadata(self, parent_url, metadata, slug):
         payload = str(metadata)
@@ -223,4 +239,54 @@ class FedoraConnection(object):
                 raise NotImplementedError('Returning anything else than id is not implemented yet')
         return ret
 
+    def update(self, query):
+        metadata = self.get_object_rdf_metadata(query.pk, query.prev_data)
+        # forget about "added" items
+        metadata = RDFMetadata(query.pk, metadata.rdf_metadata)
 
+        for fld, vals in query.update_data.items():
+            cvals = FedoraConnection._cast_to_rdf_value(vals)
+            metadata[fld[0]] = cvals
+        self._update_single_resource(query.pk, metadata)
+
+    def _update_single_resource(self, url, metadata, bitstream=None):
+        payload = metadata.serialize_sparql()
+        log.info("Updating object %s", url)
+        log.debug("      payload %s", payload.decode('utf-8'))
+        # print(payload.decode('utf-8'))
+        try:
+            if bitstream is not None:
+                self._update_object_bitstream(url, bitstream)
+
+            resp = requests.patch(url + "/fcr:metadata", data=payload,
+                                  headers={'Content-Type': 'application/sparql-update; encoding=utf-8'},
+                                  auth=self._get_auth())
+            log.debug('Response: ', resp.content)
+            if resp.status_code // 100 != 2:
+                raise Exception('Error updating resource in Fedora: %s' % resp.content)
+            self.make_version(metadata.id, time.time())
+
+            # need to get the metadata from the server as otherwise we would not be able to update the resource
+            # later (Fedora mandates that last modification time in sent data is the same as last modification
+            # time in the metadata on server)
+            created_object_meta = list(self.get_object(metadata.id))[0]
+
+            return created_object_meta
+
+        except RequestException as e:
+            log.error("Error updating resource", e)
+            raise
+
+    def _update_object_bitstream(self, url, bitstream):
+        try:
+            # TODO: this is because of Content-Length header, need to handle it more intelligently
+            data = bitstream.stream.read()
+            headers = {'Content-Type': bitstream.mimetype}
+            if bitstream.filename:
+                filename_header = 'filename="%s"' % quote(os.path.basename(bitstream.filename).encode('utf-8'))
+                headers['Content-Disposition'] = 'attachment; ' + filename_header
+            requests.put(url, data, headers=headers, auth=self._get_auth())
+
+        except RequestException as e:
+            log.error("Error updating bitstream", e)
+            raise

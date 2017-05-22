@@ -27,16 +27,14 @@ def fedora(namespace=None, rdf_types=None, field_options=None):
         fld.contribute_to_class(clz, 'fedora_id')
 
         # add FieldTracker field
-        try:
-            fld = FieldTracker()
-            fld.contribute_to_class(clz, 'fedora_field_tracker')
-        except:
-            traceback.print_exc()
+        tracker_fld = FieldTracker()
+        tracker_fld.contribute_to_class(clz, 'fedora_field_tracker')
 
         # replace manager with FedoraManager
         manager = FedoraManager()
         clz._meta.local_managers.clear()
         manager.contribute_to_class(clz, 'objects')
+        clz._meta.base_manager = manager
 
         # TODO: implement children
         # fld = models.CharField(required=False, verbose_name=_('Fedora metadata'))
@@ -44,6 +42,11 @@ def fedora(namespace=None, rdf_types=None, field_options=None):
         #
         # fld = models.CharField(required=False, verbose_name=_('Resource children'))
         # fld.contribute_to_class(clz, 'fedora_children')
+
+        # class_prepared signal has already been sent, so emit it again just for the FieldTracker
+
+        tracker_fld.finalize_class(clz)
+
         return clz
     return annotate
 

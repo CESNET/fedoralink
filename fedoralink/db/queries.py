@@ -35,6 +35,14 @@ class FedoraMetadata:
             return [val]
         return [Literal(val)]
 
+    def get(self, key, defaultval=None):
+        if not isinstance(key, URIRef):
+            key = URIRef(key)
+        try:
+            return self.data[key]
+        except:
+            return defaultval
+
 
 class SearchQuery:
     def __init__(self, query, columns, start, end):
@@ -55,6 +63,14 @@ class FedoraQueryByPk:
         self.query = query
         self.pk = pk
         self.compiler = compiler
+
+
+class FedoraUpdateQuery:
+    def __init__(self, pk, update_data, prev_data, patched_instance):
+        self.pk = pk
+        self.update_data = update_data
+        self.prev_data = prev_data
+        self.patched_instance = patched_instance
 
 
 class InsertQuery:

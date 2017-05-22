@@ -5,6 +5,7 @@ class DatabaseCursor(object):
         self.current_params = None
         self.scanner = None
         self.lastrowid = None
+        self.rowcount = None
 
     def close(self):
         self.connection.disconnect()
@@ -13,6 +14,10 @@ class DatabaseCursor(object):
         self.current_query = query
         self.current_params = params
         self.scanner = self.connection.execute(query, params)
+        if isinstance(self.scanner, int):
+            # no scanner - for example, after update
+            self.rowcount = self.scanner
+            self.scanner = None
 
     def executemany(self, sql, params):
         """ Repeatedly executes a SQL statement. """
