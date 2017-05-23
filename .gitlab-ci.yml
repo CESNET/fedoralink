@@ -1,0 +1,19 @@
+test:
+  script:
+    - bash /home/cis/setup_and_run_tests.sh
+  artifacts:
+    when: always
+    paths:
+      - artifacts
+      
+pages:
+  stage: deploy
+  when: always
+  dependencies:
+    - test
+  script:
+    - mv artifacts/ public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
