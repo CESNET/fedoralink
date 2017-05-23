@@ -83,7 +83,7 @@ class TestSimpleStoreFetch(FedoraTestBase):
                                 "must": [
                                     {
                                         "type": {
-                                            "value": "testapp_complex"
+                                            "value": "http_3a_2f_2fcesnet_2ecz_2fns_2frepository_23complex_5ftype"
                                         }
                                     },
                                     {
