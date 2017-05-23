@@ -272,4 +272,6 @@ class NamespaceConfig:
         self.prefix = prefix
 
     def default_parent_for_inserted_object(self, inserted_object):
-        return inserted_object['doc_type']
+        if inserted_object['options']:
+            return inserted_object['options'].default_parent
+        return None

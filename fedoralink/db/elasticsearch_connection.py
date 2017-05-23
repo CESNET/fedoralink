@@ -106,12 +106,19 @@ class ElasticsearchConnection(object):
             self.elasticsearch_index_name += '_%s' % rdf2search(self.namespace_config.prefix)
 
         if not self.elasticsearch.indices.exists(self.elasticsearch_index_name):
-            self.elasticsearch.indices.create(index=self.elasticsearch_index_name)
+            self.elasticsearch.indices.create(index=self.elasticsearch_index_name,
+                                              body={
+                                                  'settings': {
+                                                      "index.mapper.dynamic":False
+                                                  }
+                                              })
 
     def update_elasticsearch_index(self, django_model):
 
+        # doc_type is a primary rdf type
+        doc_type = rdf2search(django_model._meta.fedora_options.primary_rdf_type)
+
         fields = django_model._meta.fields
-        doc_type = django_model._meta.db_table
         mapping = self.elasticsearch.indices.get_mapping(index=self.elasticsearch_index_name,
                                                          doc_type=doc_type)
         # default if the mapping does not exists yet
@@ -271,7 +278,7 @@ class ElasticsearchConnection(object):
         for obj, obj_id in zip(query.objects, ids):
             if not obj['doc_type']:
                 continue
-            serialized_object = {k[1]: v for k, v in obj['fields'].items()}
+            serialized_object = {k[1]: v for k, v in obj['fields'].items() if k[1] is not None}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
                                      id=obj_id, body=serialized_object)  # wait_for_active_shards='all'
@@ -282,6 +289,7 @@ class ElasticsearchConnection(object):
 
     def update(self, query):
         serialized_object = {k[1]: v for k, v in query.update_data.items()}
+        raise NotImplementedError("Change doctype ...")
         self.elasticsearch.update(index=self.elasticsearch_index_name,
                                   doc_type=query.patched_instance._meta.db_table,
                                   id=query.pk, body={'doc': serialized_object})

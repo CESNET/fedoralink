@@ -17,11 +17,12 @@ class FedoraResourceUrlField(models.TextField):
     pass
 
 
-def fedora(namespace=None, rdf_types=None, field_options=None):
+def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=None, default_parent=None):
     def annotate(clz):
         clz._meta.fedora_options = \
-            FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types, field_options=field_options,
-                          explicitly_declared=True)
+            FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types,
+                          primary_rdf_type=primary_rdf_type, field_options=field_options,
+                          explicitly_declared=True, default_parent=default_parent)
 
         fld = FedoraResourceUrlField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')

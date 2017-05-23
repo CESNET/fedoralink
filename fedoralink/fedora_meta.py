@@ -68,27 +68,44 @@ class FedoraOptions:
          * `explicitly_declared`  TODO: look into the router and document this
     """
 
-    def __init__(self, clz, rdf_namespace=None, rdf_types=None, field_options=None, explicitly_declared=False):
+    def __init__(self, clz, rdf_namespace=None, rdf_types=None, field_options=None, explicitly_declared=False,
+                 primary_rdf_type=None, default_parent=None):
         self.clz           = clz
         self.rdf_namespace = rdf_namespace
         self.explicitly_declared = explicitly_declared
+        self.field_options = field_options
+
         if not self.rdf_namespace:
             self.rdf_namespace = CESNET
-        self.rdf_types     = rdf_types
-        if not self.rdf_types:
-            self.rdf_types = [getattr(CESNET_TYPE, self.clz._meta.db_table)]
 
+        if not rdf_types:
+            rdf_types = [getattr(self.rdf_namespace, self.clz._meta.db_table)]
+
+        # set up rdf types on parent classes
         for parent in clz._meta.parents:
             if not hasattr(parent, '_meta'):
                 continue
             if not hasattr(parent._meta, 'fedora_options'):
                 FedoraOptions(parent, self.rdf_namespace)
 
-        if not self.rdf_types:
-            self.rdf_types = [
-                getattr(self.rdf_namespace, clz._meta.db_table)
-            ]
+        # fill in primary rdf type if unfilled
+        if not primary_rdf_type:
+            if len(rdf_types) == 1:
+                primary_rdf_type = rdf_types[0]
+            else:
+                raise AttributeError('In case of multiple rdf types, one of them must be '
+                                     'marked as primary via @fedora(..., primary_rdf_type=NS.type)')
+        self.primary_rdf_type = primary_rdf_type
 
+        # add rdf types from parent types
+        rdf_types = set(rdf_types)
+        for base_clz in clz.mro():
+            if hasattr(base_clz, '_meta') and hasattr(base_clz._meta, 'fedora_options'):
+                rdf_types.update(base_clz._meta.fedora_options.rdf_types)
+
+        self.rdf_types     = rdf_types
+
+        # add fedora_options to fields
         for fld in clz._meta.fields:
             if not hasattr(fld, 'fedora_options'):
                 if field_options and fld.name in field_options:
@@ -96,3 +113,7 @@ class FedoraOptions:
                     fld.fedora_options.field = fld
                 else:
                     fld.fedora_options = FedoraFieldOptions(field=fld, rdf_namespace=self.rdf_namespace)
+
+        if default_parent is None:
+            default_parent = clz._meta.db_table
+        self.default_parent = default_parent

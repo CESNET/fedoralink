@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 from rdflib import URIRef
 
 from fedoralink.db.patches.save_patch import patch_save
+from fedoralink.db.patches.state import patch_model_state_from_model
 from fedoralink.idmapping import id2url
 
 
@@ -88,3 +89,5 @@ class ApplicationConfig(AppConfig):
 
         import django.db.models.signals
         django.db.models.signals.post_init.connect(patch_save)
+
+        patch_model_state_from_model()

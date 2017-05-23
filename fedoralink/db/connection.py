@@ -54,7 +54,7 @@ class FedoraWithElasticConnection:
             raise NotImplementedError('This type of query is not yet implemented')
 
     def create_model(self, django_model):
-        FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
+        fedora_options = FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
         if not FedoraObject.objects.filter(fedora_id=django_model._meta.db_table).exists():
             self.fedora_connection.create_resources(InsertQuery(
                 [
@@ -63,7 +63,8 @@ class FedoraWithElasticConnection:
                         'fields': {
                         },
                         'slug': django_model._meta.db_table,
-                        'doc_type': None
+                        'doc_type': None,
+                        'options': None,
                     }
                 ]
             ))
@@ -131,12 +132,13 @@ class FedoraWithElasticConnection:
     def _object_to_insert_data(opts, obj, fields, compiler):
         ret = {
             'parent': getattr(obj, '_fedora_parent', None),
-            'doc_type': opts.db_table,
+            'doc_type': rdf2search(opts.fedora_options.primary_rdf_type),
             'fields': {
                 (field.fedora_options.rdf_name, field.fedora_options.search_name):
                     compiler.prepare_value(field, compiler.pre_save_val(field, obj))
                 for field in fields if hasattr(field, 'fedora_options')
-            }
+            },
+            'options': opts.fedora_options
         }
         ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [Literal(x) for x in opts.fedora_options.rdf_types]
         return ret
