@@ -9,7 +9,7 @@ from fedoralink.models import FedoraResourceUrlField
 
 
 class FedoraMetadata:
-    def __init__(self, data, from_search):
+    def __init__(self, data, from_search, doc_type=None):
         if isinstance(data, RDFMetadata):
             self.data = data
         else:
@@ -18,6 +18,7 @@ class FedoraMetadata:
             }
         self.data = data
         self.from_search = from_search
+        self.doc_type = doc_type
 
     def __getitem__(self, item):
         if not isinstance(item, URIRef):
@@ -116,7 +117,7 @@ class SelectScanner:
         if isinstance(column[3], FedoraMetadataAnnotation):
             return FedoraMetadata({
                 search2rdf(k) : self._apply_mapping(mapping, k, v) for k, v in source.items()
-            }, from_search=True)
+            }, from_search=True, doc_type=data['_type'])
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):

@@ -13,7 +13,7 @@ class FedoraTestBase(TransactionTestCase):
             # try to get the root object. If found, delete the root and wait a bit so that elasticsearch catches
             FedoraObject.objects.get(fedora_id='')
             self.tearDown()
-            time.sleep(5)
+            time.sleep(1)
         except:
             pass
 
@@ -33,7 +33,7 @@ class FedoraTestBase(TransactionTestCase):
             print(cursor)
         call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
-        time.sleep(3)
+        time.sleep(1)
 
     def tearDown(self):
         for conn in connections.databases:
@@ -42,4 +42,4 @@ class FedoraTestBase(TransactionTestCase):
                     cursor.cursor.connection.delete_all_data()
                 except:
                     pass
-        time.sleep(3)
+        time.sleep(1)

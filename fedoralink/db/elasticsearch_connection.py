@@ -12,6 +12,7 @@ from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
 from fedoralink.idmapping import id2url
+from fedoralink.manager import ELASTICSEARCH
 from fedoralink.models import FedoraResourceUrlField, FedoraObject
 from . import FedoraError
 
@@ -19,6 +20,10 @@ log = logging.getLogger(__file__)
 
 
 class IndexMappingError(FedoraError):
+    pass
+
+
+class InconsistentSearchError(FedoraError):
     pass
 
 
@@ -113,6 +118,11 @@ class ElasticsearchConnection(object):
                                                   }
                                               })
 
+        self.refresh()
+
+    def refresh(self):
+        self.elasticsearch.indices.refresh(index=self.elasticsearch_index_name)
+
     def update_elasticsearch_index(self, django_model):
 
         # doc_type is a primary rdf type
@@ -162,6 +172,7 @@ class ElasticsearchConnection(object):
                 'properties': new_mapping
             })
             del self.mapping_cache[doc_type]
+            self.refresh()
 
     @staticmethod
     def _fields_to_mapping(fields):
@@ -281,7 +292,8 @@ class ElasticsearchConnection(object):
             serialized_object = {k[1]: v for k, v in obj['fields'].items() if k[1] is not None}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
-                                     id=obj_id, body=serialized_object)  # wait_for_active_shards='all'
+                                     id=obj_id, body=serialized_object)
+        self.refresh()
 
     def delete_all_data(self):
         if self.elasticsearch.indices.exists(self.elasticsearch_index_name):
@@ -289,10 +301,14 @@ class ElasticsearchConnection(object):
 
     def update(self, query):
         serialized_object = {k[1]: v for k, v in query.update_data.items()}
-        raise NotImplementedError("Change doctype ...")
+        try:
+            mo = FedoraObject.objects.via(ELASTICSEARCH).get(fedora_id=query.pk)
+        except:
+            raise InconsistentSearchError('Could not find object instance in elasticsearch!')
         self.elasticsearch.update(index=self.elasticsearch_index_name,
-                                  doc_type=query.patched_instance._meta.db_table,
+                                  doc_type=mo.fedora_meta.doc_type,
                                   id=query.pk, body={'doc': serialized_object})
+        self.refresh()
 
 def convert_tree_to_elastic(tree):
     if isinstance(tree, Operation):

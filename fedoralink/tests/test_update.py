@@ -27,8 +27,6 @@ class TestUpdate(FedoraTestBase):
         self.assertEqual(o1.a, o2.a, 'The text in the repository is not updated')
         self.assertEqual(o1.b, o2.b, 'b should not be changed')
 
-        # check updated in elasticsearch
-        time.sleep(5)
         o3 = Complex.objects.via(ELASTICSEARCH).get(pk=o1.pk)
         self.assertEqual(o1.a, o3.a, 'The text in the elasticsearch is not updated')
         self.assertEqual(o1.b, o3.b, 'b should not be changed')
@@ -42,11 +40,10 @@ class TestUpdate(FedoraTestBase):
 
         # check updated in the repository
         o2 = Complex.objects.get(pk=o1.pk)
-        self.assertEqual(o1.a, o2.a, 'The text in the repository is not updated')
-        self.assertEqual(o1.b, o2.b, 'b should not be changed')
 
-        # check updated in elasticsearch
-        time.sleep(5)
+        self.assertEqual('5', o2.a, 'The text in the repository is not updated')
+        self.assertEqual('2', o2.b, 'b should not be changed')
+
         o3 = Complex.objects.via(ELASTICSEARCH).get(pk=o1.pk)
-        self.assertEqual(o1.a, o3.a, 'The text in the elasticsearch is not updated')
-        self.assertEqual(o1.b, o3.b, 'b should not be changed')
+        self.assertEqual('5', o3.a, 'The text in the elasticsearch is not updated')
+        self.assertEqual('2', o3.b, 'b should not be changed')
