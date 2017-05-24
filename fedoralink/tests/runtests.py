@@ -16,7 +16,10 @@ def runtests():
     # failures = runner.run_suite(suite)
     # sys.exit(failures)
 
-    sys.exit(subprocess.call(['fedoralink/tests/testserver/manage.py', 'test']))
+    ret = subprocess.call(['coverage', 'run', 'fedoralink/tests/testserver/manage.py', 'test'])
+    ret2 = subprocess.call(['coverage', 'html'])
+    ret1 = subprocess.call(['coverage', 'report'])
+    sys.exit(ret + ret1 + ret2)
 
 if __name__ == '__main__':
     runtests()
