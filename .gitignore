@@ -13,3 +13,8 @@ fedora_group_plugin/target
 *.iml
 /fedoralink/tests/test.py
 docs/_build
+.eggs
+.tox
+build
+dist
+venv

@@ -9,6 +9,7 @@ from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.base.validation import BaseDatabaseValidation
+from django import VERSION as django_version
 
 from fedoralink.db import FedoraError
 from fedoralink.db.connection import FedoraWithElasticConnection
@@ -16,6 +17,16 @@ from fedoralink.db.cursor import DatabaseCursor
 from fedoralink.db.lookups import Operation
 
 log = logging.getLogger(__file__)
+
+try:
+    from django.db.backends import BaseDatabaseClient
+except ImportError:
+    from django.db.backends.base.client import BaseDatabaseClient
+
+
+class DatabaseClient(BaseDatabaseClient):
+    def runshell(self):
+        raise NotImplementedError("Running database shell is not supported")
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -192,14 +203,24 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'iendswith': 'LIKE %s',
     }
 
+    client_class = DatabaseClient
+    creation_class = DatabaseCreation
+    features_class = DatabaseFeatures
+    introspection_class = DatabaseIntrospection
+    validation_class = DatabaseValidation
+    ops_class = DatabaseOperations
+
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
-        self.creation = DatabaseCreation(self)
-        self.features = DatabaseFeatures(self)
-        self.introspection = DatabaseIntrospection(self)
-        self.ops = DatabaseOperations(self)
-        self.validation = DatabaseValidation(self)
+        if django_version[:2] < (1, 11):
+            self.ops = DatabaseOperations(self)
+            self.client = DatabaseClient(self)
+            self.features = DatabaseFeatures(self)
+            self.creation = DatabaseCreation(self)
+            self.introspection = DatabaseIntrospection(self)
+            self.validation = DatabaseValidation(self)
+
         self.settings_dict['SUPPORTS_TRANSACTIONS'] = True
         self.autocommit = True
         self.page_size = 100
@@ -253,7 +274,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def is_usable(self):
         return True
 
-    def create_cursor(self):
+    def create_cursor(self, *args, **kwargs):
         return DatabaseCursor(self.connection)
 
     def _set_autocommit(self, autocommit):
