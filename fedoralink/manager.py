@@ -97,7 +97,7 @@ class FedoraQuerySet(QuerySet):
         if 'pk' in kwargs and not isinstance(kwargs['pk'], numbers.Number):
             kwargs['pk'] = url2id(kwargs['pk'])
         if 'id' in kwargs and not isinstance(kwargs['id'], numbers.Number):
-            kwargs['pk'] = url2id(kwargs['id'])
+            kwargs['id'] = url2id(kwargs['id'])
         return super().get(*args, **kwargs)
 
     def via(self, _via):

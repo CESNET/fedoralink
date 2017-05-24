@@ -93,7 +93,7 @@ For example, the following filter can be used to filter all projects with 'CESNE
 ``project`` ``doc_type`` within Elasticsearch's index::
 
   FedoraObject.objects.via('project').
-      filter(**{'http://...#organization': 'CESNET'})
+      filter(**{URIRef('http://...#organization'): 'CESNET'})
 
 Test case:
     :file:`fedoralink.tests.test_simple_store_fetch`
