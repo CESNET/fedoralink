@@ -30,6 +30,8 @@ class FedoraWithElasticConnection:
     def disconnect(self):
         pass
 
+
+
     def execute_insert(self, query):
         ids = self.fedora_connection.create_resources(query)
         self.elasticsearch_connection.index_resources(query, ids)
@@ -105,6 +107,10 @@ class FedoraWithElasticConnection:
         return FedoraUpdateQuery(pk, update_data, prev_data, compiler.query.patched_instance), []
 
     def commit(self):
+        log.warning('commit and rollback are not supported yet on fedora connection ...')
+        pass
+
+    def rollback(self):
         log.warning('commit and rollback are not supported yet on fedora connection ...')
         pass
 

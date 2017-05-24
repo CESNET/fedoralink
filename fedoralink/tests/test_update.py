@@ -16,6 +16,9 @@ unittest.util._MAX_LENGTH=2000
 
 
 class TestUpdate(FedoraTestBase):
+    """
+    Check that update operation (.save(), .update()) works and is propagated to Elasticsearch 
+    """
 
     def test_update(self):
         o1 = Complex.objects.create(a='1', b='2')

@@ -6,6 +6,9 @@ from fedoralink.idmapping import url2id, id2url
 
 
 class IdMappingTest(TestCase):
+    """
+    Test that idmapping between fedora and django ids work
+    """
     def test_mapping(self):
         urls = [
             'http://localhost:8080/fcrepo/rest',

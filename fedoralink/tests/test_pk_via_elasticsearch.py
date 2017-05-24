@@ -13,6 +13,9 @@ unittest.util._MAX_LENGTH=2000
 
 
 class TestPkViaElasticsearch(FedoraTestBase):
+    """
+    Check that Elasticsearch could be used for finding fedora objects by their urls
+    """
     def setUp(self):
         super().setUp()
 

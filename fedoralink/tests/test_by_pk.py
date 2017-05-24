@@ -11,6 +11,9 @@ unittest.util._MAX_LENGTH=2000
 
 
 class TestByPk(FedoraTestBase):
+    """
+    Test access to fedora resources via url(fedora standard) or integer(django standard) pk 
+    """
     def setUp(self):
         super().setUp()
 

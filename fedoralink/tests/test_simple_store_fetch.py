@@ -20,6 +20,9 @@ unittest.util._MAX_LENGTH=2000
 
 
 class TestSimpleStoreFetch(FedoraTestBase):
+    """
+    Test storing objects and searching them by string properties
+    """
 
     def test_simple_store_fetch(self):
         o1 = Simple.objects.create(text='Hello world 1')
