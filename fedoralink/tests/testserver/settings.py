@@ -106,4 +106,3 @@ LOGIN_REDIRECT_URL = '/'
 
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_ARGS = ['--with-spec', '--spec-color']

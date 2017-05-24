@@ -261,7 +261,7 @@ class FedoraConnection(object):
             resp = requests.patch(url + "/fcr:metadata", data=payload,
                                   headers={'Content-Type': 'application/sparql-update; encoding=utf-8'},
                                   auth=self._get_auth())
-            log.debug('Response: ', resp.content)
+            log.debug('Response: %s', resp.content)
             if resp.status_code // 100 != 2:
                 raise Exception('Error updating resource in Fedora: %s' % resp.content)
             self.make_version(metadata.id, time.time())

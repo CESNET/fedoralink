@@ -18,3 +18,5 @@ docs/_build
 build
 dist
 venv
+.nose
+.coverage
