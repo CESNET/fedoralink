@@ -1,8 +1,8 @@
 import logging
 import unittest.util
 
-from .utils import FedoraTestBase
 from fedoralink.tests.testserver.testapp.models import Simple
+from fedoralink.tests.utils import FedoraTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -25,7 +25,6 @@ class TestByPk(FedoraTestBase):
         o2 = Simple.objects.get(fedora_id=self.object.fedora_id)
         self.assertEqual(self.object.text, o2.text, 'The text of the stored and retrieved objects must match')
         self.assertFalse(o2.fedora_meta.from_search)
-
 
     def test_pk(self):
         o2 = Simple.objects.get(pk=self.object.fedora_id)

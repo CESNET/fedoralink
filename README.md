@@ -10,7 +10,7 @@ cd /tmp
 virtualenv testfedora-venv -p python3
 . /tmp/testfedora-venv/bin/activate
 pip install django
-pip install git+https://github.com/mesemus/fedoralink.git
+pip install git+https://github.com/CESNET/fedoralink.git
 django-admin startproject testfedora
 ```
 
@@ -23,10 +23,18 @@ INSTALLED_APPS += [
 ### 3. Add repository/ies into settings.py:
 ```python
 DATABASES['repository'] = {
-    'ENGINE'          : 'fedoralink.engine',
-    'SEARCH_ENGINE'   : 'fedoralink.indexer.SOLRIndexer',
-    'REPO_URL'        : 'http://127.0.0.1:8080/fcrepo/rest',
-    'SEARCH_URL'      : 'http://127.0.0.1:8891/solr/collection1'
+    'ENGINE'            : 'fedoralink.db.base',
+    'SEARCH_ENGINE'     : 'fedoralink.indexer.SOLRIndexer',
+    'REPO_URL'          : 'http://127.0.0.1:8080/fcrepo/rest',
+    'SEARCH_URL'        : 'http://127.0.0.1:8891/solr/collection1',
+    'USERNAME'          : 'fedoralink',
+    'PASSWORD'          : 'fedoralink',
+    'CONNECTION_OPTIONS': {
+        'namespace': {
+            'namespace': '',
+            'prefix': 'test'
+        }
+    }
 }
 ```
 

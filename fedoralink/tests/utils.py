@@ -3,6 +3,7 @@ from django.core.management import call_command
 from django.db import connections
 from django.test import TransactionTestCase
 
+from fedoralink.authentication.as_user import as_admin
 from fedoralink.db.queries import InsertQuery
 from fedoralink.models import FedoraObject
 
@@ -16,21 +17,21 @@ class FedoraTestBase(TransactionTestCase):
             time.sleep(1)
         except:
             pass
-
         with connections['repository'].cursor() as cursor:
-            cursor.execute(InsertQuery(
-                [
-                    {
-                        'parent': '/rest',  # break out of the test-test context
-                        'doc_type': None,
-                        'fields': {
-                        },
-                        'slug': 'test-test',
-                        'options': None
-                    }
-                ]
-            ))
-            print(cursor)
+            with as_admin():
+                cursor.execute(InsertQuery(
+                    [
+                        {
+                            'parent': '/fcrepo/rest',  # break out of the test-test context
+                            'doc_type': None,
+                            'fields': {
+                            },
+                            'slug': 'test-test',
+                            'options': None
+                        }
+                    ]
+                ))
+                print(cursor)
         call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
         time.sleep(1)
@@ -39,7 +40,8 @@ class FedoraTestBase(TransactionTestCase):
         for conn in connections.databases:
             with connections[conn].cursor() as cursor:
                 try:
-                    cursor.cursor.connection.delete_all_data()
+                    with as_admin():
+                        cursor.cursor.connection.delete_all_data()
                 except:
                     pass
         time.sleep(1)

@@ -72,7 +72,7 @@ DATABASES = {
     },
     'repository': {
         'ENGINE': 'fedoralink.db',
-        'REPO_URL': 'http://127.0.0.1:8080/rest',
+        'REPO_URL': 'http://127.0.0.1:8080/fcrepo/rest',
         'SEARCH_URL': 'http://127.0.0.1:9200/fedoralink-test',
         'USERNAME': '',
         'PASSWORD': '',
