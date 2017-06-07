@@ -20,22 +20,26 @@ INSTALLED_APPS += [
     'fedoralink'
 ]
 ```
-### 3. Add repository/ies into settings.py:
+### 3. Add repository/ies and database router into settings.py:
 ```python
 DATABASES['repository'] = {
-    'ENGINE'            : 'fedoralink.db.base',
+    'ENGINE'            : 'fedoralink.db',
     'SEARCH_ENGINE'     : 'fedoralink.indexer.SOLRIndexer',
     'REPO_URL'          : 'http://127.0.0.1:8080/fcrepo/rest',
-    'SEARCH_URL'        : 'http://127.0.0.1:8891/solr/collection1',
+    'SEARCH_URL'        : 'http://127.0.0.1:9200/testfedora',
     'USERNAME'          : 'fedoralink',
     'PASSWORD'          : 'fedoralink',
     'CONNECTION_OPTIONS': {
         'namespace': {
             'namespace': '',
-            'prefix': 'test'
+            'prefix': ''
         }
     }
 }
+
+DATABASE_ROUTERS = [
+    'fedoralink.tests.testserver.routers.FedoraRouter',
+]
 ```
 
 ### 4. To test:
@@ -48,74 +52,59 @@ python3
 
 inside python:
 ```python
+import django
+django.setup()
 from fedoralink.models import FedoraObject
-
-# empty pk is the root of the repository
-list(FedoraObject.objects.filter(pk=''))
-
-    INFO:fedoralink.connection:Requesting url http://127.0.0.1:8080/fcrepo/rest/
-    INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): 127.0.0.1
-    [<fedoralink.type_manager.FedoraObject_bound object at 0x7f36effcf6a0>]
+# empty fedora_id is the root of the repository
+FedoraObject.objects.filter(fedora_id='')
+    INFO:elasticsearch:HEAD http://127.0.0.1:9200/testfedora_test [status:200 request:0.012s]
+    INFO:elasticsearch:POST http://127.0.0.1:9200/testfedora_test/_refresh [status:200 request:0.004s]
+    INFO:elasticsearch:GET http://127.0.0.1:9200/testfedora_test/_search?scroll=1m&size=1000&from=0 [status:200 request:0.005s]
+    INFO:elasticsearch:DELETE http://127.0.0.1:9200/_search/scroll [status:200 request:0.003s]
 
 ```
 
 ### 5. Simple operations
 
-#### Fetch a collection with a given pk (url)
+#### Create and save a fedora object
+
+1) Define a fedora annotated model in models.py:
 
 ```python
-root = FedoraObject.objects.get(pk='')
+from django.db.models import Model, TextField
+from fedoralink.fedorans import CESNET
+from fedoralink.models import fedora
+ 
+@fedora(namespace=CESNET)
+class TestObject(Model):
+    text = TextField(null=True, blank=True)
 ```
 
-#### Create a new subcollection
+2) Make migrations for your defined model:
+```bash
+python manage.py makemigrations testfedora
+Migrations for 'testfedora':
+  testfedora/migrations/0001_initial.py
+    - Create model TestObject
 
-Pass a parameter "slug" to influence the URL of the created subcollection
-
-```python
-test = root.create_subcollection('test', slug='test')
-
-# can set metadata here, not saved until .save() is called
-test.save()
 ```
 
-#### Set metadata
-
-```python
-from rdflib import Literal
-from rdflib.namespace import DC
-
-test[DC.title] = (
-    Literal('Pokusný repozitář', lang='cs'),
-    Literal('Test repository', lang='en'),
-)
-
-# changes are saved after this method is called
-test.save()
+3) Apply created migrations:
+```bash
+python manage.py migrate testfedora --database repository
+Operations to perform:
+  Apply all migrations: testfedora
+Running migrations:
+  Applying testfedora.0001_initial... OK
 ```
 
-#### Create a typed object
-
+4) Create object instance and store it in Fedora:
 ```python
-from fedoralink.common_namespaces.dc import DCObject    
-    
-child = collection.create_child('name, will be copied to DC.title', flavour=DCObject)
-child.title = 'Can use plain string as well as tuple with Literal.'
-child.creator = 'ms'
-child.save()
-    
-```
-
-#### List children
-
-```python
-
-# untyped
-for child in collection.children:
-    print("listing, child: ", child[DC.title])
-
-# typed
-for child in collection.children:
-    print("listing, child: ", type(child), child.title)
-
+import django
+django.setup()
+INFO:rdflib:RDFLib Version: 4.2.2
+from testfedora.models import TestObject
+TestObject.objects.create(text='Hello World!')
+<TestObject: TestObject object>
 ```
 
