@@ -202,6 +202,10 @@ class ElasticsearchConnection(object):
                 field_mapping = {
                     'type': 'keyword',
                 }
+            elif isinstance(fld, django_fields.IntegerField):
+                field_mapping = {
+                    'type': 'integer',
+                }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
 
