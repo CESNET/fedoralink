@@ -1,0 +1,1 @@
+default_app_config = 'fedoralink.common_namespaces.dc.apps.ApplicationConfig'

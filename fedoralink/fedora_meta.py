@@ -79,7 +79,10 @@ class FedoraOptions:
             self.rdf_namespace = CESNET
 
         if not rdf_types:
-            rdf_types = [getattr(self.rdf_namespace, self.clz._meta.db_table)]
+            if not primary_rdf_type:
+                rdf_types = [getattr(self.rdf_namespace, self.clz._meta.db_table)]
+            else:
+                rdf_types = [primary_rdf_type]
 
         # set up rdf types on parent classes
         for parent in clz._meta.parents:

@@ -26,7 +26,7 @@ class FedoraTestBase(TransactionTestCase):
                             'doc_type': None,
                             'fields': {
                             },
-                            'slug': 'test-test',
+                            'slug': 'test',
                             'options': None
                         }
                     ]

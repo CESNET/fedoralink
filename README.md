@@ -14,10 +14,11 @@ pip install git+https://github.com/CESNET/fedoralink.git
 django-admin startproject testfedora
 ```
 
-### 2. Add fedoralink into INSTALLED_APPS in settings.py:
+### 2. Add fedoralink and testfedora into INSTALLED_APPS in settings.py:
 ```python
 INSTALLED_APPS += [
-    'fedoralink'
+    'fedoralink',
+    'testfedora'
 ]
 ```
 ### 3. Add repository/ies and database router into settings.py:
