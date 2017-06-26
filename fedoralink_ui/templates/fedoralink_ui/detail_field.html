@@ -2,7 +2,8 @@
 
 {% if value %}
 <div class="row property_item">
-    <div class="col-md-3 property_name">{{ name|rdf2lang }}</div>
+    <div class="col-md-3 property_name">{% if verbose_name %}{{ verbose_name|rdf2lang }}{% else %}{{ name|rdf2lang }}
+    {% endif %}</div>
     <div class="col-md-9 property_value">
         {% if field.multi_valued %}
             {% for val in value %}
