@@ -189,7 +189,7 @@ class FedoraField(Field):
         if value is None:
             return []
 
-        if not self.is_array:
+        if not self.is_array or not(type(value) is list or type(value) is tuple or type(value) is set):
             value = [value]
 
         value = [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]

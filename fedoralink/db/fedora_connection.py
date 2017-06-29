@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 import rdflib
 import requests
 from django.db import models
+from django.db.models import IntegerField
 from rdflib import Literal, XSD, URIRef
 from requests import RequestException
 from requests.auth import HTTPBasicAuth
@@ -17,6 +18,7 @@ from fedoralink.db.exceptions import RepositoryException
 from fedoralink.db.lookups import get_column_ids, FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import FedoraResourceScanner, FedoraMetadata
 from fedoralink.db.rdf import RDFMetadata
+from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
@@ -226,7 +228,8 @@ class FedoraConnection(object):
                 ret.append(obj.id)
             elif isinstance(fedora_col, FedoraMetadataAnnotation):
                 ret.append(FedoraMetadata(obj, from_search=False))
-            elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField):
+            elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField) or \
+                    isinstance(django_field, IntegerField):
                 field_data = obj[URIRef(field_name)]
                 if len(field_data) == 0:
                     ret.append(None)
@@ -235,6 +238,9 @@ class FedoraConnection(object):
                                 "taking only the first item. Metadata:\n%s", rdf_name, obj)
                 else:
                     ret.append(field_data[0].value)
+            elif isinstance(django_field, FedoraField):
+                # FedoraField.from_db_value will take care of converting Literal to target type
+                ret.append(obj[URIRef(field_name)])
             else:
                 raise NotImplementedError('Returning anything else than id is not implemented yet')
         return ret
