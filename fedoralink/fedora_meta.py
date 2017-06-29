@@ -34,14 +34,20 @@ class FedoraFieldOptions:
                                     :py:obj:`rdflib.namespace.Namespace` class.
         """
         self.field = field
-        if rdf_name:
-            self.rdf_name = rdf_name
-        else:
+        self.rdf_namespace = rdf_namespace
+        self._rdf_name = rdf_name
+
+    @property
+    def rdf_name(self):
+        if not self._rdf_name:
             if not self.field:
                 raise AttributeError('Please use rdf_name in FedoraFieldOptions constructor')
-            self.rdf_name = getattr(rdf_namespace, self.field.name)
+            self._rdf_name = getattr(self.rdf_namespace, self.field.name)
+        return self._rdf_name
 
-        self.search_name = rdf2search(self.rdf_name)
+    @property
+    def search_name(self):
+        return rdf2search(self.rdf_name)
 
 
 class FedoraOptions:
