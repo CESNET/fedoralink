@@ -1,4 +1,6 @@
 import time
+
+import re
 from django.core.management import call_command
 from django.db import connections
 from django.test import TransactionTestCase
@@ -26,18 +28,6 @@ class FedoraTestBase(TransactionTestCase):
                             'doc_type': None,
                             'fields': {
                             },
-                            'slug': 'test',
-                            'options': None
-                        }
-                    ]
-                ))
-                cursor.execute(InsertQuery(
-                    [
-                        {
-                            'parent': '/fcrepo/rest',  # break out of the test-test context
-                            'doc_type': None,
-                            'fields': {
-                            },
                             'slug': 'test-test',
                             'options': None
                         }
@@ -57,3 +47,15 @@ class FedoraTestBase(TransactionTestCase):
                 except:
                     pass
         time.sleep(1)
+        # check if there are any other resources in the root - if so, something went wrong
+        with connections['repository'].cursor() as cursor:
+            with as_admin():
+                fc = cursor.cursor.connection.fedora_connection
+                rurl = fc.repo_url
+                rurl = re.sub(r'rest/.*', 'rest', rurl)
+                data = fc.get_object(rurl, fetch_child_metadata=True)
+                subjects = set()
+                for d in data:
+                    for meta in d.rdf_metadata:
+                        subjects.add(meta[0])
+                self.assertEqual(len(subjects), 1)
