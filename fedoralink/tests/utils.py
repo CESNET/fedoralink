@@ -31,6 +31,18 @@ class FedoraTestBase(TransactionTestCase):
                         }
                     ]
                 ))
+                cursor.execute(InsertQuery(
+                    [
+                        {
+                            'parent': '/fcrepo/rest',  # break out of the test-test context
+                            'doc_type': None,
+                            'fields': {
+                            },
+                            'slug': 'test-test',
+                            'options': None
+                        }
+                    ]
+                ))
                 print(cursor)
         call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None

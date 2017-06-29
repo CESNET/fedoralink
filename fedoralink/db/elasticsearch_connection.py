@@ -11,6 +11,7 @@ from elasticsearch import Elasticsearch
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
+from fedoralink.fields import FedoraField
 from fedoralink.idmapping import id2url
 from fedoralink.manager import ELASTICSEARCH
 from fedoralink.models import FedoraResourceUrlField, FedoraObject
@@ -183,6 +184,8 @@ class ElasticsearchConnection(object):
                 continue
 
             name = fld.fedora_options.search_name
+            if isinstance(fld, FedoraField):
+                fld = fld.base_field
             if isinstance(fld, django_fields.AutoField):
                 field_mapping = {
                     'type': 'keyword'

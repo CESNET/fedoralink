@@ -65,6 +65,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fedoralink.tests.testserver.wsgi.application'
 
+REPO_URL='http://127.0.0.1:8080/fcrepo/rest'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -72,7 +74,7 @@ DATABASES = {
     },
     'repository': {
         'ENGINE': 'fedoralink.db',
-        'REPO_URL': 'http://127.0.0.1:8080/fcrepo/rest',
+        'REPO_URL': REPO_URL,
         'SEARCH_URL': 'http://127.0.0.1:9200/fedoralink-test',
         'USERNAME': '',
         'PASSWORD': '',

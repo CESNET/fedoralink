@@ -34,6 +34,8 @@ class FedoraFieldOptions:
                                     :py:obj:`rdflib.namespace.Namespace` class.
         """
         self.field = field
+        if not rdf_namespace:
+            rdf_namespace = CESNET
         self.rdf_namespace = rdf_namespace
         self._rdf_name = rdf_name
 

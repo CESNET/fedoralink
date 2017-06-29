@@ -2,7 +2,7 @@ from django.db import models
 
 from fedoralink.fedorans import CESNET
 from fedoralink.models import fedora
-from fedoralink.fields import FedoraArrayField
+from fedoralink.fields import FedoraField
 
 
 @fedora(namespace=CESNET)
@@ -17,4 +17,4 @@ class Complex(models.Model):
 
 @fedora(namespace=CESNET, rdf_types=[CESNET.array_field_test])
 class ArrayFieldModel(models.Model):
-    a = FedoraArrayField(models.CharField(max_length=10))
+    a = FedoraField(models.CharField, max_length=10, multiplicity=FedoraField.ANY)

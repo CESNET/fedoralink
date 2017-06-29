@@ -49,6 +49,7 @@ class DatabaseCreation(BaseDatabaseCreation):
 class DatabaseFeatures(BaseDatabaseFeatures):
     can_return_ids_from_bulk_insert = True
     can_return_id_from_insert = True
+    supports_transactions = False
     pass
 
 
