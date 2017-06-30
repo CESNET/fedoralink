@@ -76,8 +76,8 @@ DATABASES = {
         'ENGINE': 'fedoralink.db',
         'REPO_URL': REPO_URL,
         'SEARCH_URL': 'http://127.0.0.1:9200/fedoralink-test',
-        'USERNAME': '',
-        'PASSWORD': '',
+        'USERNAME': 'fedoraAdmin',
+        'PASSWORD': 'secret3',
         'CONNECTION_OPTIONS': {
             'namespace': {
                 'namespace': '',

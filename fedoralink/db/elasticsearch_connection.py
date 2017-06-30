@@ -36,13 +36,14 @@ class FuzzyTTLCache(cachetools.TTLCache):
     mappings. To distribute mapping requests in time, FuzzyTTL does not give a single ttl value but a value 
     perturbed by a random delta.
     """
+
     def __init__(self, maxsize, ttl, delta):
         super().__init__(maxsize=maxsize, ttl=ttl)
-        self.__base_ttl  = ttl
-        self.__ttl_delta = min(ttl-1, delta)
+        self.__base_ttl = ttl
+        self.__ttl_delta = min(ttl - 1, delta)
 
     def __setitem__(self, key, value, cache_setitem=cachetools.Cache.__setitem__):
-        self.__ttl = self.__base_ttl + (random()-0.5) * 2 * self.__ttl_delta
+        self.__ttl = self.__base_ttl + (random() - 0.5) * 2 * self.__ttl_delta
         super().__setitem__(key, value, cache_setitem)
 
 
@@ -55,8 +56,9 @@ class ElasticsearchMappingCache:
     
     This class is a cache of fetched mappings indexed by doc_type
     """
+
     def __init__(self, connection):
-        self.mapping_cache = FuzzyTTLCache(maxsize=512, ttl=5*60, delta=60)
+        self.mapping_cache = FuzzyTTLCache(maxsize=512, ttl=5 * 60, delta=60)
         self.connection = connection
 
     def __delitem__(self, doc_type):
@@ -115,7 +117,7 @@ class ElasticsearchConnection(object):
             self.elasticsearch.indices.create(index=self.elasticsearch_index_name,
                                               body={
                                                   'settings': {
-                                                      "index.mapper.dynamic":False
+                                                      "index.mapper.dynamic": False
                                                   }
                                               })
 
@@ -317,6 +319,7 @@ class ElasticsearchConnection(object):
                                   id=query.pk, body={'doc': serialized_object})
         self.refresh()
 
+
 def convert_tree_to_elastic(tree):
     if isinstance(tree, Operation):
         if tree.type == 'AND':
@@ -365,11 +368,13 @@ def convert_tree_to_elastic(tree):
             return {
                 'bool': {
                     'minimum_should_match': 1,
-                    'should': {
-                        'term': {
-                            convert_tree_to_elastic(lhs): r
+                    'should': [
+                        {
+                            'term': {
+                                convert_tree_to_elastic(lhs): r
+                            }
                         } for r in rhs
-                    }
+                    ]
                 }
             }
 
