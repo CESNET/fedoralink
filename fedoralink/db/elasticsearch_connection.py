@@ -356,6 +356,23 @@ def convert_tree_to_elastic(tree):
                 }
             }
 
+        if tree.type == 'in':
+            lhs = tree.operands[0]
+            rhs = tree.operands[1]
+            if isinstance(rhs, Node):
+                rhs = convert_tree_to_elastic(rhs)
+
+            return {
+                'bool': {
+                    'minimum_should_match': 1,
+                    'should': {
+                        'term': {
+                            convert_tree_to_elastic(lhs): r
+                        } for r in rhs
+                    }
+                }
+            }
+
         raise NotImplementedError('Conversion of operation type %s to elasticsearch not yet implemented' % tree.type)
     elif isinstance(tree, Column):
         return tree.search_name

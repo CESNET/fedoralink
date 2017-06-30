@@ -61,6 +61,35 @@ def exact_lookup(self, compiler, connection):
     return Operation(self.lookup_name, lhs, rhs), []
 
 
+
+def in_lookup(self, compiler, connection):
+    lhs, lhs_params = self.process_lhs(compiler, connection)
+#    rhs, rhs_params = self.process_rhs(compiler, connection)
+    db_rhs = getattr(self.rhs, '_db', None)
+    if db_rhs is not None and db_rhs != connection.alias:
+        raise ValueError(
+            "Subqueries aren't allowed across different databases. Force "
+            "the inner query to be evaluated using `list(inner_query)`."
+        )
+
+    if self.rhs_is_direct_value():
+        try:
+            rhs = set(self.rhs)
+        except TypeError:  # Unhashable items in self.rhs
+            rhs = self.rhs
+        rhs_params = None
+
+        if not rhs:
+            from django.db.models.sql.datastructures import EmptyResultSet
+            raise EmptyResultSet
+    else:
+        raise ValueError("Non-direct RHS not yet supported")
+
+    if lhs_params or rhs_params:
+        raise NotImplementedError('Params in lookups are not supported')
+    return Operation(self.lookup_name, lhs, rhs), []
+
+
 def get_db_prep_lookup(self, value, connection, orig_lookup):
     # if is fedoralink, return just the value, otherwise return original prep lookup value
     if connection.vendor == 'fedoralink':

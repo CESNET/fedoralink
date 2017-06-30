@@ -32,3 +32,8 @@ class TestFedoraFieldFetch(FedoraTestBase):
         self.assertEqual(o1.id, url2id(o1.fedora_id), 'The id of the stored and retrieved objects must match')
         o2 = ArrayFieldModel.objects.get(fedora_id=o1.fedora_id)
         self.assertEqual(o1.a, o2.a, 'The text of the stored and retrieved objects must match')
+
+    def test_search_in(self):
+        o1 = ArrayFieldModel.objects.create(a=['Hello', 'World'])
+        lst = list(ArrayFieldModel.objects.filter(a__in=['Hello']))
+        self.assertEqual(len(lst), 1)

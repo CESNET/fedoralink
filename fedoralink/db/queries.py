@@ -4,6 +4,7 @@ from rdflib import URIRef, Literal
 from fedoralink.db.lookups import FedoraMetadataAnnotation
 from fedoralink.db.rdf import RDFMetadata
 from fedoralink.db.utils import search2rdf
+from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraResourceUrlField
 
@@ -122,6 +123,11 @@ class SelectScanner:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
             return URIRef(data['_id'])
+        if isinstance(column[4], FedoraField):
+            items = source[column[1]]
+            if not isinstance(items, list):
+                items = [items]
+            return [Literal(x) for x in items]
         return source[column[1]]
 
     def _apply_mapping(self, mapping, key, val):
