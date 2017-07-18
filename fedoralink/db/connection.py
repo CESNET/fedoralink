@@ -35,7 +35,7 @@ class FedoraWithElasticConnection:
     def execute_insert(self, query):
         ids = self.fedora_connection.create_resources(query)
         self.elasticsearch_connection.index_resources(query, ids)
-        return InsertScanner([url2id(object_id) for object_id in ids])
+        return InsertScanner([[url2id(object_id) for object_id in ids]])
 
     def execute_update(self, query):
         self.fedora_connection.update(query)

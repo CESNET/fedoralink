@@ -1,4 +1,4 @@
-from django.db.models import Field, CharField
+from django.db.models import Field, CharField, Count
 from django.db.models.expressions import Col, Value
 from django.db.models.sql.where import WhereNode
 
@@ -114,9 +114,11 @@ def add_vendor_to_lookups():
     WhereNode.as_fedoralink = where_as_fedoralink
 
 
-def get_column_ids(columns):
+def get_column_ids(columns, add_count=None):
     ret = []
     for col in columns:
+        if add_count and not isinstance(col[0], Count):
+            continue
         fedora_col = col[1][0]
 
         django_field = col[0].field
@@ -133,17 +135,25 @@ def get_column_ids(columns):
             )
             continue
 
-        if not isinstance(fedora_col, Column):
+        if isinstance(col[0], Count):
+            pass
+        elif not isinstance(fedora_col, Column):
             raise NotImplementedError('Returning column of type %s is not yet implemented' % type(fedora_col))
 
         opts = getattr(django_field, 'fedora_options', None)
+        col_rdf_name = None
         if opts:
             rdf_name = opts.rdf_name
             search_name = opts.search_name
+            col_rdf_name = fedora_col.rdf_name
         else:
             if isinstance(fedora_col, FedoraIdColumn):
                 rdf_name = '_id'
                 search_name = '_id'
+                col_rdf_name = fedora_col.rdf_name
+            elif isinstance(col[0], Count):
+                rdf_name = '__count'
+                search_name = '__count'
             else:
                 raise AttributeError('Do not have mapping for column %s' % col)
 
@@ -151,7 +161,7 @@ def get_column_ids(columns):
             (
                 rdf_name,
                 search_name,
-                fedora_col.rdf_name,
+                col_rdf_name,
                 fedora_col,
                 django_field
             ))

@@ -45,7 +45,10 @@ class DatabaseCursor(object):
 
     def fetchone(self):
         try:
-            return [next(self.scanner)]
+            ret = next(self.scanner)
+            if not isinstance(ret, list):
+                ret = list(ret)
+            return ret
         except StopIteration:
             return None
 

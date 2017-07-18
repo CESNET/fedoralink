@@ -6,6 +6,7 @@ from random import random
 import cachetools
 import django.db.models.fields as django_fields
 import elasticsearch.helpers
+from django.db.models import Count
 from elasticsearch import Elasticsearch
 
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
@@ -226,8 +227,13 @@ class ElasticsearchConnection(object):
     def get_query_representation(query, compiler, extra_select, order_by, group_by, distinct_fields):
         annotations = query.annotations.copy()
         annotations.pop('fedora_meta', None)
+        add_count = None
         if annotations:
-            raise NotImplementedError("Annotations not yet implemented")
+            for annotation_key, annotation_value in annotations.items():
+                if isinstance(annotation_value, Count):
+                    add_count = annotation_key
+                else:
+                    raise NotImplementedError("Annotations not yet implemented")
         if query.extra:
             raise NotImplementedError("Extra not yet implemented")
         if query.extra_order_by:
@@ -247,7 +253,12 @@ class ElasticsearchConnection(object):
         if query.select_related:
             raise NotImplementedError("Select related not yet implemented")
         if group_by:
-            raise NotImplementedError("Group by not yet implemented")
+            # just ignore primary keys ...
+            for g in group_by:
+                if isinstance(g[0], Column):
+                    if g[0].django_field == g[0].django_field.model._meta.pk:
+                        continue
+                raise NotImplementedError("Group by not yet implemented")
         if distinct_fields:
             raise NotImplementedError("Distinct not yet implemented")
 
@@ -279,20 +290,32 @@ class ElasticsearchConnection(object):
         }
         print(json.dumps(elastic_query, indent=4))
 
-        return SearchQuery(elastic_query, get_column_ids(compiler.select),
-                           compiler.query.low_mark, compiler.query.high_mark), {}
+        return SearchQuery(elastic_query, get_column_ids(compiler.select, add_count),
+                           compiler.query.low_mark, compiler.query.high_mark,
+                           add_count), {}
 
     def execute_search(self, query):
+        if not query.add_count:
+            return SelectScanner(
+                elasticsearch.helpers.scan(
+                    self.elasticsearch,
+                    query=query.query,
+                    scroll=u'1m',
+                    preserve_order=True,
+                    index=self.elasticsearch_index_name,
+                    from_=query.start),
+                query.columns, query.count,
+                self.mapping_cache)
+        result = self.elasticsearch.search(index=self.elasticsearch_index_name, body=query.query,
+                                           from_=query.start)
+        hits = result['hits']
+        data = hits['hits']
         return SelectScanner(
-            elasticsearch.helpers.scan(
-                self.elasticsearch,
-                query=query.query,
-                scroll=u'1m',
-                preserve_order=True,
-                index=self.elasticsearch_index_name,
-                from_=query.start),
+            iter(data),
             query.columns, query.count,
-            self.mapping_cache)
+            self.mapping_cache,
+            result_metadata=hits
+        )
 
     def index_resources(self, query, ids):
         for obj, obj_id in zip(query.objects, ids):

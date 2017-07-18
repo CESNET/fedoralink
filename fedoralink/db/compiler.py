@@ -41,5 +41,9 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
 
 class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):
-    def execute_sql(self, *args, **kwargs):
-        raise NotImplementedError()
+    def as_sql(self, with_limits=True, with_col_aliases=False, subquery=False):
+        with self.connection.cursor() as cursor:
+            return cursor.connection.get_query_representation(self.query, self, self.connection)
+
+    # def execute_sql(self, *args, **kwargs):
+    #     raise NotImplementedError()

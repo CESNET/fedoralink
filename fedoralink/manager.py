@@ -2,9 +2,10 @@ import numbers
 from enum import Enum
 
 from django.core.exceptions import FieldError
-from django.db.models import QuerySet, sql, CharField, TextField
+from django.db.models import QuerySet, sql, CharField, TextField, Count
 from django.db.models.manager import BaseManager
 from django.db.models.sql import UpdateQuery
+from django.db.models.sql.constants import SINGLE
 from rdflib import URIRef
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
@@ -85,6 +86,23 @@ class FedoraQuery(sql.Query):
         ret.previous_update_values = self.previous_update_values
         ret.patched_instance = self.patched_instance
         return ret
+
+
+    def get_count(self, using):
+        """
+        Performs a COUNT() query using the current filter constraints.
+        """
+        obj = self.clone()
+        obj.add_annotation(Count('*'), alias='__count', is_summary=True)
+
+        compiler = obj.get_compiler(using)
+        result = compiler.execute_sql(SINGLE)
+
+        converters = compiler.get_converters([x for x in obj.annotation_select.values() if isinstance(x, Count)])
+        result = compiler.apply_converters(result, converters)
+
+        return result[0] if result[0] else 0
+
 
 
 class FedoraQuerySet(QuerySet):

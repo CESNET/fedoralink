@@ -21,8 +21,9 @@ class TestQueryAggregations(FedoraTestBase):
         Simple.objects.create(text='Hello')
         Simple.objects.create(text='World')
 
-        cnt = Simple.objects.filter(text='Hello').count()
-        self.assertEqual(3, cnt)
         cnt = Simple.objects.count()
         self.assertEqual(4, cnt)
+
+        cnt = Simple.objects.filter(text='Hello').count()
+        self.assertEqual(3, cnt)
 

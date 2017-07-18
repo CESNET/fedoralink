@@ -47,11 +47,12 @@ class FedoraMetadata:
 
 
 class SearchQuery:
-    def __init__(self, query, columns, start, end):
+    def __init__(self, query, columns, start, end, add_count):
         self.query = query
         self.columns = columns
         self.start = start
         self.end = end
+        self.add_count = add_count
 
     @property
     def count(self):
@@ -93,12 +94,13 @@ class InsertScanner:
 
 
 class SelectScanner:
-    def __init__(self, scanner, columns, count, mapping_cache):
+    def __init__(self, scanner, columns, count, mapping_cache, result_metadata=None):
         self.scanner = scanner
         self.columns = columns
         self.count = count
         self.iter = iter(self.scanner)
         self.mapping_cache = mapping_cache
+        self.result_metadata = result_metadata
 
     def __next__(self):
         if self.count:
@@ -119,6 +121,8 @@ class SelectScanner:
             return FedoraMetadata({
                 search2rdf(k) : self._apply_mapping(mapping, k, v) for k, v in source.items()
             }, from_search=True, doc_type=data['_type'])
+        if column[0] == '__count':
+            return self.result_metadata['total']
         if column[4] == column[4].model._meta.pk:
             return url2id(data['_id'])
         if isinstance(column[4], FedoraResourceUrlField):
