@@ -212,6 +212,8 @@ class ElasticsearchConnection(object):
                 field_mapping = {
                     'type': 'integer',
                 }
+            elif isinstance(fld, django_fields.BinaryField):
+                continue
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
 
