@@ -344,6 +344,7 @@ class ElasticsearchConnection(object):
             )
 
     def index_resources(self, query, ids):
+        from fedoralink.db.base import FedoraDatabase
         for obj, obj_id in zip(query.objects, ids):
             if not obj['doc_type']:
                 continue
