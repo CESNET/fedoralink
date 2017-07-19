@@ -257,12 +257,19 @@ class ElasticsearchConnection(object):
                 if not isinstance(order_el.expression, Col):
                     raise NotImplementedError('Only columns are supported in ordering')
                 order_field = order_el.expression.field
-                order_search_name = order_field.fedora_options.search_name
-                sort_by.append({
-                    order_search_name : {
-                        'order': 'desc' if order_el.descending else 'asc'
-                    }
-                })
+                if order_field.primary_key:
+                    sort_by.append({
+                        '_uid' : {
+                            'order': 'desc' if order_el.descending else 'asc'
+                        }
+                    })
+                else:
+                    order_search_name = order_field.fedora_options.search_name
+                    sort_by.append({
+                        order_search_name : {
+                            'order': 'desc' if order_el.descending else 'asc'
+                        }
+                    })
         if query.select_for_update:
             raise NotImplementedError("Select for update not yet implemented")
         if query.select_for_update_nowait:

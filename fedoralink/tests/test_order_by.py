@@ -27,3 +27,11 @@ class TestOrderBy(FedoraTestBase):
 
             for i, obj in enumerate(Simple.objects.all().order_by('-text')):
                 self.assertEqual('Hello %s' % (9-i), obj.text)
+
+    def test_order_by_first(self):
+        with as_admin():
+            for i in range(10):
+                Simple.objects.create(text='Hello %s' % i)
+
+            obj = Simple.objects.all().first()
+            self.assertIsNotNone(obj)
