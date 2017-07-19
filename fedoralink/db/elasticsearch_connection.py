@@ -7,6 +7,7 @@ import cachetools
 import django.db.models.fields as django_fields
 import elasticsearch.helpers
 from django.db.models import Count
+from django.db.models.expressions import Col
 from elasticsearch import Elasticsearch
 
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
@@ -230,6 +231,9 @@ class ElasticsearchConnection(object):
         annotations = query.annotations.copy()
         annotations.pop('fedora_meta', None)
         add_count = None
+        sort_by = [
+            '_doc'
+        ]
         if annotations:
             for annotation_key, annotation_value in annotations.items():
                 if isinstance(annotation_value, Count):
@@ -247,7 +251,18 @@ class ElasticsearchConnection(object):
         if query.extra_tables:
             raise NotImplementedError("Extra Tables not yet implemented")
         if order_by:
-            raise NotImplementedError("Order by not yet implemented")
+            sort_by = []
+            for order_el in order_by:
+                order_el = order_el[0]
+                if not isinstance(order_el.expression, Col):
+                    raise NotImplementedError('Only columns are supported in ordering')
+                order_field = order_el.expression.field
+                order_search_name = order_field.fedora_options.search_name
+                sort_by.append({
+                    order_search_name : {
+                        'order': 'desc' if order_el.descending else 'asc'
+                    }
+                })
         if query.select_for_update:
             raise NotImplementedError("Select for update not yet implemented")
         if query.select_for_update_nowait:
@@ -287,8 +302,9 @@ class ElasticsearchConnection(object):
             'query': {
                 'bool': {
                     'must': query_parts
-                }
-            }
+                },
+            },
+            'sort': sort_by
         }
         print(json.dumps(elastic_query, indent=4))
 
@@ -297,7 +313,7 @@ class ElasticsearchConnection(object):
                            add_count), {}
 
     def execute_search(self, query):
-        if not query.use_search_instead_of_scan:
+        if not query.use_search_instead_of_scan and not query.start:
             return SelectScanner(
                 elasticsearch.helpers.scan(
                     self.elasticsearch,
@@ -310,7 +326,7 @@ class ElasticsearchConnection(object):
                 self.mapping_cache)
         else:
             result = self.elasticsearch.search(index=self.elasticsearch_index_name, body=query.query,
-                                               from_=query.start)
+                                               from_=query.start, size=query.count if query.count else 1000)
             hits = result['hits']
             data = hits['hits']
             return SelectScanner(
