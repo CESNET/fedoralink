@@ -130,6 +130,10 @@ class FedoraDatabase(object):
     # Base class for all exceptions
     Error = FedoraError
 
+    class Binary():
+        def __init__(self, value):
+            self.value = value
+
     class DatabaseError(FedoraError):
         """Database-side errors."""
 
