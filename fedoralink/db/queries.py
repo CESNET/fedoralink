@@ -47,12 +47,12 @@ class FedoraMetadata:
 
 
 class SearchQuery:
-    def __init__(self, query, columns, start, end, add_count):
+    def __init__(self, query, columns, start, end, use_search_instead_of_scan):
         self.query = query
         self.columns = columns
         self.start = start
         self.end = end
-        self.add_count = add_count
+        self.use_search_instead_of_scan = use_search_instead_of_scan
 
     @property
     def count(self):
@@ -101,12 +101,16 @@ class SelectScanner:
         self.iter = iter(self.scanner)
         self.mapping_cache = mapping_cache
         self.result_metadata = result_metadata
+        self.eof = False
 
     def __next__(self):
+        if self.eof:
+            raise StopIteration()
+
         if self.count:
             self.count -= 1
             if not self.count:
-                raise StopIteration()
+                self.eof = True
 
         data = next(self.iter)
         print(self, data['_source'])

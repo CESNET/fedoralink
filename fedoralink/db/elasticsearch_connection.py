@@ -297,7 +297,7 @@ class ElasticsearchConnection(object):
                            add_count), {}
 
     def execute_search(self, query):
-        if not query.add_count:
+        if not query.use_search_instead_of_scan:
             return SelectScanner(
                 elasticsearch.helpers.scan(
                     self.elasticsearch,
@@ -308,16 +308,17 @@ class ElasticsearchConnection(object):
                     from_=query.start),
                 query.columns, query.count,
                 self.mapping_cache)
-        result = self.elasticsearch.search(index=self.elasticsearch_index_name, body=query.query,
-                                           from_=query.start)
-        hits = result['hits']
-        data = hits['hits']
-        return SelectScanner(
-            iter(data),
-            query.columns, query.count,
-            self.mapping_cache,
-            result_metadata=hits
-        )
+        else:
+            result = self.elasticsearch.search(index=self.elasticsearch_index_name, body=query.query,
+                                               from_=query.start)
+            hits = result['hits']
+            data = hits['hits']
+            return SelectScanner(
+                iter(data),
+                query.columns, query.count,
+                self.mapping_cache,
+                result_metadata=hits
+            )
 
     def index_resources(self, query, ids):
         for obj, obj_id in zip(query.objects, ids):
