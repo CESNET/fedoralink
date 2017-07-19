@@ -347,7 +347,7 @@ class ElasticsearchConnection(object):
         for obj, obj_id in zip(query.objects, ids):
             if not obj['doc_type']:
                 continue
-            serialized_object = {k[1]: v for k, v in obj['fields'].items() if k[1] is not None}
+            serialized_object = {k[1]: v for k, v in obj['fields'].items() if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
                                      id=obj_id, body=serialized_object)
