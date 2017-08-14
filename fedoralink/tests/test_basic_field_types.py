@@ -46,6 +46,15 @@ class TestBasicFieldTypes(FedoraTestBase):
         self._assert_django_model_equals(o1, o2)
 
 
+    def test_null_bool_from_elasticsearch(self):
+        o1 = self._create(null_boolean=None)
+        o1.save()
+
+        # check updated in the repository
+        o2 = BasicFieldTypes.objects.via(ELASTICSEARCH).get(pk=o1.pk)
+        self._assert_django_model_equals(o1, o2)
+
+
     def _assert_django_model_equals(self, o1, o2):
         for fld in o1._meta.fields:
             self.assertEqual(getattr(o1, fld.name), getattr(o2, fld.name), 'Error comparing attr %s' % fld)
