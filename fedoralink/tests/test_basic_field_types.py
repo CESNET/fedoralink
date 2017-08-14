@@ -6,6 +6,7 @@ from uuid import UUID
 from dateutil.tz import tzlocal
 from decimal import Decimal
 
+from fedoralink.manager import ELASTICSEARCH
 from fedoralink.tests.testserver.testapp.models import BasicFieldTypes
 from .utils import FedoraTestBase
 
@@ -35,6 +36,15 @@ class TestBasicFieldTypes(FedoraTestBase):
         # check updated in the repository
         o2 = BasicFieldTypes.objects.get(pk=o1.pk)
         self._assert_django_model_equals(o1, o2)
+
+    def test_from_elasticsearch(self):
+        o1 = self._create()
+        o1.save()
+
+        # check updated in the repository
+        o2 = BasicFieldTypes.objects.via(ELASTICSEARCH).get(pk=o1.pk)
+        self._assert_django_model_equals(o1, o2)
+
 
     def _assert_django_model_equals(self, o1, o2):
         for fld in o1._meta.fields:

@@ -233,6 +233,7 @@ class FedoraConnection(object):
                 ret.append(obj.id)
             elif isinstance(fedora_col, FedoraMetadataAnnotation):
                 ret.append(FedoraMetadata(obj, from_search=False))
+            # TODO: should the conversion logic be here or is it ok to have it just in fedoralink.db.base ?
             elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField) or \
                     isinstance(django_field, IntegerField) or \
                     isinstance(django_field, models.FloatField) or \
