@@ -198,6 +198,20 @@ class ElasticsearchConnection(object):
                 field_mapping = {
                     'type': 'date'
                 }
+            elif isinstance(fld, django_fields.DateField):
+                field_mapping = {
+                    'type': 'date'
+                }
+            elif isinstance(fld, django_fields.TimeField):
+                # time gets translated to 00:00:00.00000000 and is compared as texts
+                field_mapping = {
+                    'type': 'keyword'
+                }
+            elif isinstance(fld, django_fields.DurationField):
+                # duration gets translated to seconds and is indexed as double
+                field_mapping = {
+                    'type': 'double'
+                }
             elif isinstance(fld, django_fields.CharField):
                 # TODO: check if there is a fulltext annotation there
                 field_mapping = {
@@ -206,6 +220,37 @@ class ElasticsearchConnection(object):
             elif isinstance(fld, django_fields.TextField):
                 # TODO: check if there is a fulltext annotation there
                 # TODO: store=True?
+                field_mapping = {
+                    'type': 'keyword',
+                }
+            elif isinstance(fld, django_fields.UUIDField):
+                field_mapping = {
+                    'type': 'keyword',
+                }
+            elif isinstance(fld, django_fields.GenericIPAddressField):
+                field_mapping = {
+                    'type': 'keyword',
+                }
+            elif isinstance(fld, django_fields.BooleanField):
+                field_mapping = {
+                    'type': 'boolean',
+                }
+            elif isinstance(fld, django_fields.NullBooleanField):
+                field_mapping = {
+                    'type': 'boolean',
+                }
+            elif isinstance(fld, django_fields.FloatField):
+                field_mapping = {
+                    'type': 'double',
+                }
+            elif isinstance(fld, django_fields.DecimalField):
+                # TODO: there seems to be no support for decimals with arbitrary
+                # TODO: precision in elasticsearch, consider scaled_float in some cases
+                field_mapping = {
+                    'type': 'double',
+                }
+            elif isinstance(fld, django_fields.BigIntegerField):
+                # TODO: there is no support for biginteger in elasticsearch yet, so convert to string
                 field_mapping = {
                     'type': 'keyword',
                 }
@@ -344,10 +389,13 @@ class ElasticsearchConnection(object):
             )
 
     def index_resources(self, query, ids):
+        from fedoralink.db.base import FedoraDatabase
+
         for obj, obj_id in zip(query.objects, ids):
             if not obj['doc_type']:
                 continue
-            serialized_object = {k[1]: v for k, v in obj['fields'].items() if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
+            serialized_object = {k[1]: v for k, v in obj['fields'].items()
+                                            if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
                                      id=obj_id, body=serialized_object)

@@ -85,7 +85,7 @@ class NotCast(object):
         return Operation('not', other)
 
 
-class DatabaseOperations(BaseDatabaseOperations):
+class FedoraDatabaseOperations(BaseDatabaseOperations):
     compiler_module = "fedoralink.db.compiler"
 
     def quote_name(self, name):
@@ -213,13 +213,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     features_class = DatabaseFeatures
     introspection_class = DatabaseIntrospection
     validation_class = DatabaseValidation
-    ops_class = DatabaseOperations
+    ops_class = FedoraDatabaseOperations
 
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         if django_version[:2] < (1, 11):
-            self.ops = DatabaseOperations(self)
+            self.ops = FedoraDatabaseOperations(self)
             self.client = DatabaseClient(self)
             self.features = DatabaseFeatures(self)
             self.creation = DatabaseCreation(self)

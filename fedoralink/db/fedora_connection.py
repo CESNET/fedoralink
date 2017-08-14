@@ -1,10 +1,14 @@
+import datetime
+import decimal
 import io
 import logging
 import os.path
 import time
 from contextlib import closing
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
+from uuid import UUID
 
+import iso8601
 import rdflib
 import requests
 from django.db import models
@@ -23,14 +27,12 @@ from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
 from .delegated_requests import post, delete
-from urllib.parse import urljoin, quote
-
 
 log = logging.getLogger(__file__)
 
 
 class FedoraConnection(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *_args, **kwargs):
         self.repo_url = kwargs['fcrepo_url']
         self.username = kwargs['fcrepo_username']
         self.password = kwargs['fcrepo_password']
@@ -70,7 +72,8 @@ class FedoraConnection(object):
         for fld, vals in fields.items():
             cvals = FedoraConnection._cast_to_rdf_value(vals)
             for val in cvals:
-                rdf_metadata.add(fld[0], val)
+                if val is not None:
+                    rdf_metadata.add(fld[0], val)
         return rdf_metadata
 
     @staticmethod
@@ -79,6 +82,8 @@ class FedoraConnection(object):
             vals = [vals]
         cvals = []
         for val in vals:
+            if val is None:
+                continue
             if not isinstance(val, Literal):
                 if isinstance(val, str):
                     val = Literal(val, datatype=XSD.string)
@@ -229,7 +234,10 @@ class FedoraConnection(object):
             elif isinstance(fedora_col, FedoraMetadataAnnotation):
                 ret.append(FedoraMetadata(obj, from_search=False))
             elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField) or \
-                    isinstance(django_field, IntegerField):
+                    isinstance(django_field, IntegerField) or \
+                    isinstance(django_field, models.FloatField) or \
+                    isinstance(django_field, models.GenericIPAddressField) or \
+                    isinstance(django_field, models.BooleanField):
                 field_data = obj[URIRef(field_name)]
                 if len(field_data) == 0:
                     ret.append(None)
@@ -238,6 +246,74 @@ class FedoraConnection(object):
                                 "taking only the first item. Metadata:\n%s", rdf_name, obj)
                 else:
                     ret.append(field_data[0].value)
+            elif isinstance(django_field, models.NullBooleanField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(field_data[0].value)
+            elif isinstance(django_field, models.UUIDField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(UUID(field_data[0].value))
+            elif isinstance(django_field, models.DecimalField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(decimal.Decimal(field_data[0].value))
+            elif isinstance(django_field, models.DateTimeField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    if isinstance(field_data[0].value, str):
+                        ret.append(iso8601.parse_date(field_data[0].value))
+                    else:
+                        ret.append(field_data[0].value)
+            elif isinstance(django_field, models.DateField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(datetime.datetime.strptime(field_data[0].value, "%Y-%m-%d").date())
+            elif isinstance(django_field, models.TimeField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    ret.append(datetime.datetime.strptime(field_data[0].value, "%H:%M:%S.%f").time())
+            elif isinstance(django_field, models.DurationField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    val = field_data[0].value
+                    val = float(val)
+                    ret.append(val)
             elif isinstance(django_field, FedoraField):
                 # FedoraField.from_db_value will take care of converting Literal to target type
                 ret.append(obj[URIRef(field_name)])

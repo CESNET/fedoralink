@@ -89,7 +89,8 @@ setup(
                       'python-dateutil',
                       'elasticsearch',
                       'cachetools',
-                      'django-model-utils'],
+                      'django-model-utils',
+                      'iso8601'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

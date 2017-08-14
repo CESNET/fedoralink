@@ -1,6 +1,7 @@
 import logging
 
 import django.db.models.lookups
+import re
 from django.core.exceptions import FieldError
 from django.db.models import AutoField
 from django.db.models.sql.where import WhereNode
@@ -52,8 +53,10 @@ class FedoraWithElasticConnection:
             return self.execute_insert(query)
         elif isinstance(query, FedoraUpdateQuery):
             return self.execute_update(query)
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* ADD CONSTRAINT.* UNIQUE', query):
+            log.warning('Adding unique constraints is not supported on Fedora, ignoring')
         else:
-            raise NotImplementedError('This type of query is not yet implemented')
+            raise NotImplementedError('Query of type %s is not yet implemented: %s' % (type(query), query))
 
     def create_model(self, django_model):
         fedora_options = FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
