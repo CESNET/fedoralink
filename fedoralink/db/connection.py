@@ -3,10 +3,13 @@ import logging
 import django.db.models.lookups
 import re
 from django.core.exceptions import FieldError
+from django.core.files import File
 from django.db.models import AutoField
+from django.db.models.fields.files import FieldFile
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
 
+from fedoralink.db.binary import FedoraBinaryStream
 from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk, FedoraUpdateQuery
 from fedoralink.db.utils import rdf2search
@@ -184,8 +187,11 @@ class FedoraWithElasticConnection:
                 val = field.get_db_prep_save(val, connection=compiler.connection)
 
             ret[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
+            prev_data = previous_update_values.get(field.name, None)
+            if prev_data and isinstance(prev_data, File):
+                prev_data = URIRef(prev_data.name)
             prev[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = \
-                previous_update_values.get(field.name, None)
+                prev_data
 
         return ret, prev
 
