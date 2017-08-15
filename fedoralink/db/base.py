@@ -141,6 +141,8 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
             converters += [self.convert_time]
         if isinstance(field, models.DateField):
             converters += [self.convert_date]
+        if isinstance(field, models.FileField):
+            converters += [self.convert_file]
         return converters
 
     def convert_uuid(self, value, expression, connection, context):
@@ -167,6 +169,9 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
         if value is not None and isinstance(value, str):
             value = iso8601.parse_date(value)
         return value
+
+    def convert_file(self, value, expression, connection, context):
+        raise NotImplementedError()
 
 
 class DatabaseValidation(BaseDatabaseValidation):

@@ -4,7 +4,7 @@ import urllib.parse
 from random import random
 
 import cachetools
-import django.db.models.fields as django_fields
+import django.db.models as django_fields
 import elasticsearch.helpers
 from django.db.models import Count
 from django.db.models.expressions import Col
@@ -260,6 +260,10 @@ class ElasticsearchConnection(object):
                 }
             elif isinstance(fld, django_fields.BinaryField):
                 continue
+            elif isinstance(fld, django_fields.FileField):
+                field_mapping = {
+                    'type': 'keyword',
+                }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
 

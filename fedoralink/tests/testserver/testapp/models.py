@@ -51,9 +51,8 @@ class BasicFieldTypes(models.Model):
     null_boolean = models.NullBooleanField()
 
 
-# @fedora(namespace=CESNET, rdf_types=[CESNET.binary_field_types])
-# class BinaryFieldTypes(models.Model):
-#
-#     binary_field = models.BinaryField()
-#     file = models.FileField()
-#     image = models.ImageField()
+@fedora(namespace=CESNET, rdf_types=[CESNET.binary_field_types])
+class BinaryFieldTypes(models.Model):
+    binary_field = models.BinaryField()
+    file = models.FileField()
+    image = models.ImageField()

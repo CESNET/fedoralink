@@ -81,7 +81,11 @@ class FedoraUpdateQuery:
 
 class InsertQuery:
     def __init__(self, objects):
-        self.objects = objects
+        self._objects = objects
+
+    @property
+    def objects(self):
+        return self._objects
 
 
 class InsertScanner:

@@ -1,3 +1,6 @@
+from django.db import models
+
+from fedoralink.db.binary import FedoraStorage
 from fedoralink.db.utils import rdf2search
 from fedoralink.fedorans import CESNET, CESNET_TYPE
 
@@ -77,7 +80,8 @@ class FedoraOptions:
     """
 
     def __init__(self, clz, rdf_namespace=None, rdf_types=None, field_options=None, explicitly_declared=False,
-                 primary_rdf_type=None, default_parent=None):
+                 primary_rdf_type=None, default_parent=None, setup_storage=False):
+
         self.clz           = clz
         self.rdf_namespace = rdf_namespace
         self.explicitly_declared = explicitly_declared
@@ -124,6 +128,11 @@ class FedoraOptions:
                     fld.fedora_options.field = fld
                 else:
                     fld.fedora_options = FedoraFieldOptions(field=fld, rdf_namespace=self.rdf_namespace)
+
+                # on FileField, make sure the storage is FedoraStorage
+                if isinstance(fld, models.FileField) and setup_storage:
+                    if not fld.storage or not isinstance(fld.storage, FedoraStorage):
+                        fld.storage = FedoraStorage()
 
         if default_parent is None:
             default_parent = clz._meta.db_table
