@@ -1,4 +1,6 @@
+from django.core.files import File
 from django.core.files.storage import Storage
+from django.db import connections
 from django.utils.deconstruct import deconstructible
 from rdflib import Literal, XSD
 
@@ -18,15 +20,19 @@ class FedoraStorage(Storage):
     def _open(self, name, mode='rb'):
         from fedoralink.models import FedoraObject
         fo = FedoraObject.objects
+
         if self.repository_name:
+            conn = connections[self.repository_name]
             fo = fo.using(self.repository_name)
+        else:
+            conn = connections['repository']
+
         fo = fo.get(fedora_id=name)
-        # TODO: wrap the binary stream so that we can set the technical metadata ...
-        return fo.fedora_binary_stream
+        return FedoraBinaryStream(fo, name, conn)
 
     def _save(self, name, content):
-        from fedoralink.models import FedoraObject
-        fo = FedoraObject()
+        from fedoralink.models import BinaryObject
+        fo = BinaryObject()
         fo.fedora_meta[EBUCORE.filename] = Literal(content.name, datatype=XSD.string)
         content_type = getattr(content, 'content_type', None)
         if content_type:
@@ -34,6 +40,7 @@ class FedoraStorage(Storage):
         fo.fedora_meta[EBUCORE.hasSize] = Literal(content.size, datatype=XSD.integer)
         fo.fedora_binary_stream = content
         fo.save(using=self.repository_name)
+        return fo.fedora_id
 
     def delete(self, name):
         raise NotImplementedError("Not implemented")
@@ -70,3 +77,21 @@ class FedoraStorage(Storage):
         directly by a Web browser.
         """
         raise NotImplementedError('subclasses of Storage must provide a url() method')
+
+
+class FedoraBinaryStream(File):
+    def __init__(self, fedora_object, name, connection):
+        super().__init__(None, name)
+        self.fedora_object = fedora_object
+        self._connection   = connection
+        self.file          = None
+
+    def read(self, chunk_size):
+        if not self.file:
+            self.open()
+        return self.file.read(chunk_size)
+
+    def open(self, mode=None):
+        with self._connection.cursor() as cursor:
+            self.file = cursor.cursor.connection.fetch_bitstream(self.name)
+            return self.file

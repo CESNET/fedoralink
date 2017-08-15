@@ -54,10 +54,14 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
     return annotate
 
 
-@fedora(default_parent='')
+@fedora()
 class FedoraObject(models.Model):
     pass
 
+
+@fedora()
+class BinaryObject(models.Model):
+    pass
 
 def _on_fedora_post_init(sender, **kwargs):
     if hasattr(sender._meta, 'fedora_options') and not hasattr(sender, 'fedora_meta'):

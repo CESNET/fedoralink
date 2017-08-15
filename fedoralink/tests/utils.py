@@ -26,6 +26,7 @@ class FedoraTestBase(TransactionTestCase):
                     [
                         {
                             'parent': '/fcrepo/rest',  # break out of the test-test context
+                            'bitstream': None,
                             'doc_type': None,
                             'fields': {
                             },
@@ -35,6 +36,7 @@ class FedoraTestBase(TransactionTestCase):
                     ]
                 ))
                 print(cursor)
+        call_command('migrate', '--database', 'repository', 'fedoralink')
         call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
         time.sleep(1)

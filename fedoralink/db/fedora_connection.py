@@ -1,3 +1,4 @@
+import base64
 import datetime
 import decimal
 import io
@@ -5,6 +6,7 @@ import logging
 import os.path
 import time
 from contextlib import closing
+from io import BytesIO
 from urllib.parse import urljoin, quote
 from uuid import UUID
 
@@ -62,7 +64,15 @@ class FedoraConnection(object):
             if parent_url is None:
                 parent_url = ''
             parent_url = self._get_request_url(parent_url)
-            created_id = self._create_object_from_metadata(parent_url, rdf_metadata, saved_object.get('slug', None))
+            slug = saved_object.get('slug', None)
+            if saved_object['bitstream'] is not None:
+                created_id = self._create_object_from_bitstream(parent_url,
+                                                                         saved_object['bitstream'],
+                                                                         slug)
+                self._update_single_resource(created_id, rdf_metadata)
+            else:
+                created_id = self._create_object_from_metadata(parent_url, rdf_metadata, slug)
+
             ids.append(created_id)
         return ids
 
@@ -78,6 +88,8 @@ class FedoraConnection(object):
 
     @staticmethod
     def _cast_to_rdf_value(vals):
+        from fedoralink.db.base import FedoraDatabase
+
         if not isinstance(vals, list) and not isinstance(vals, tuple):
             vals = [vals]
         cvals = []
@@ -87,6 +99,8 @@ class FedoraConnection(object):
             if not isinstance(val, Literal):
                 if isinstance(val, str):
                     val = Literal(val, datatype=XSD.string)
+                elif isinstance(val, FedoraDatabase.Binary):
+                    val = Literal(base64.b64encode(val.value).decode('ASCII'), datatype=XSD.string)
                 else:
                     val = Literal(val)
             cvals.append(val)
@@ -116,6 +130,32 @@ class FedoraConnection(object):
         except RequestException as e:
             log.exception("Error in creating object")
             raise
+
+    def _create_object_from_bitstream(self, parent_url, bitstream, slug):
+        log.info('Creating child from bitstream in %s', parent_url)
+        try:
+            # TODO: this is because of Content-Length header, need to handle it more intelligently
+            bio = BytesIO()
+            for chunk in bitstream.chunks():
+                bio.write(chunk)
+            data = bio.getvalue()
+            headers = {'Content-Type' : bitstream.content_type}
+            if bitstream.name:
+                filename_header = 'filename="%s"' % quote(os.path.basename(bitstream.name).encode('utf-8'))
+                headers['Content-Disposition'] = 'attachment; ' + filename_header
+            if slug:
+                headers['SLUG'] = slug
+            resp = requests.post(parent_url, data, headers=headers, auth=self._get_auth())
+            created_object_id = resp.text
+
+            # do not make a version as this will be done after metadata are uploaded ...
+            return created_object_id
+
+        except RequestException as e:
+            log.error("Error in creating object")
+            raise
+
+
 
     def _get_auth(self):
         if (hasattr(fedora_auth_local, 'Credentials')):
@@ -238,7 +278,8 @@ class FedoraConnection(object):
                     isinstance(django_field, IntegerField) or \
                     isinstance(django_field, models.FloatField) or \
                     isinstance(django_field, models.GenericIPAddressField) or \
-                    isinstance(django_field, models.BooleanField):
+                    isinstance(django_field, models.BooleanField) or \
+                    isinstance(django_field, models.FileField):
                 field_data = obj[URIRef(field_name)]
                 if len(field_data) == 0:
                     ret.append(None)
@@ -318,8 +359,19 @@ class FedoraConnection(object):
             elif isinstance(django_field, FedoraField):
                 # FedoraField.from_db_value will take care of converting Literal to target type
                 ret.append(obj[URIRef(field_name)])
+            elif isinstance(django_field, models.BinaryField):
+                field_data = obj[URIRef(field_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    val = field_data[0].value
+                    val = base64.b64decode(val)
+                    ret.append(val)
             else:
-                raise NotImplementedError('Returning anything else than id is not implemented yet')
+                raise NotImplementedError('Returning anything else than id is not implemented yet, received %s' % django_field)
         return ret
 
     def update(self, query):
@@ -373,3 +425,7 @@ class FedoraConnection(object):
         except RequestException as e:
             log.error("Error updating bitstream", e)
             raise
+
+    def fetch_bitstream(self, url):
+        url = self._get_request_url(url)
+        return requests.get(url, auth=self._get_auth(), stream=True).raw

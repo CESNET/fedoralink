@@ -32,3 +32,14 @@ class TestBinary(FedoraTestBase):
         )
 
         o1.save()
+
+        o2 = BinaryFieldTypes.objects.get(pk=o1.pk)
+
+        self.assertEqual(o2.binary_field, o1.binary_field)
+        self.assertEqual(self._read_chunks(o2.file), b'File')
+        self.assertEqual(self._read_chunks(o2.image), image_stream.getvalue())
+
+    @staticmethod
+    def _read_chunks(data):
+        data = [x for x in data.chunks()]
+        return b''.join(data)

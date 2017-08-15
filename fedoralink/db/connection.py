@@ -65,6 +65,7 @@ class FedoraWithElasticConnection:
                 [
                     {
                         'parent': None,
+                        'bitstream': None,
                         'fields': {
                         },
                         'slug': django_model._meta.db_table,
@@ -141,6 +142,7 @@ class FedoraWithElasticConnection:
     def _object_to_insert_data(opts, obj, fields, compiler):
         ret = {
             'parent': getattr(obj, '_fedora_parent', None),
+            'bitstream': getattr(obj, 'fedora_binary_stream', None),
             'doc_type': rdf2search(opts.fedora_options.primary_rdf_type),
             'fields': {
                 (field.fedora_options.rdf_name, field.fedora_options.search_name):
@@ -149,7 +151,7 @@ class FedoraWithElasticConnection:
             },
             'options': opts.fedora_options
         }
-        ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [Literal(x) for x in opts.fedora_options.rdf_types]
+        ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [URIRef(x) for x in opts.fedora_options.rdf_types]
         return ret
 
     def _object_to_update_data(self, pk, compiler):
@@ -226,3 +228,6 @@ class FedoraWithElasticConnection:
             return id2url(rhs)
 
         return None
+
+    def fetch_bitstream(self, url):
+        return self.fedora_connection.fetch_bitstream(url)
