@@ -1,11 +1,15 @@
 import logging
 
 import django.db.models.lookups
+import re
 from django.core.exceptions import FieldError
+from django.core.files import File
 from django.db.models import AutoField
+from django.db.models.fields.files import FieldFile
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
 
+from fedoralink.db.binary import FedoraBinaryStream
 from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk, FedoraUpdateQuery
 from fedoralink.db.utils import rdf2search
@@ -52,8 +56,10 @@ class FedoraWithElasticConnection:
             return self.execute_insert(query)
         elif isinstance(query, FedoraUpdateQuery):
             return self.execute_update(query)
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* ADD CONSTRAINT.* UNIQUE', query):
+            log.warning('Adding unique constraints is not supported on Fedora, ignoring')
         else:
-            raise NotImplementedError('This type of query is not yet implemented')
+            raise NotImplementedError('Query of type %s is not yet implemented: %s' % (type(query), query))
 
     def create_model(self, django_model):
         fedora_options = FedoraWithElasticConnection.prepare_fedora_options(django_model._meta)
@@ -62,6 +68,7 @@ class FedoraWithElasticConnection:
                 [
                     {
                         'parent': None,
+                        'bitstream': None,
                         'fields': {
                         },
                         'slug': django_model._meta.db_table,
@@ -138,6 +145,7 @@ class FedoraWithElasticConnection:
     def _object_to_insert_data(opts, obj, fields, compiler):
         ret = {
             'parent': getattr(obj, '_fedora_parent', None),
+            'bitstream': getattr(obj, 'fedora_binary_stream', None),
             'doc_type': rdf2search(opts.fedora_options.primary_rdf_type),
             'fields': {
                 (field.fedora_options.rdf_name, field.fedora_options.search_name):
@@ -146,7 +154,7 @@ class FedoraWithElasticConnection:
             },
             'options': opts.fedora_options
         }
-        ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [Literal(x) for x in opts.fedora_options.rdf_types]
+        ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [URIRef(x) for x in opts.fedora_options.rdf_types]
         return ret
 
     def _object_to_update_data(self, pk, compiler):
@@ -179,8 +187,11 @@ class FedoraWithElasticConnection:
                 val = field.get_db_prep_save(val, connection=compiler.connection)
 
             ret[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
+            prev_data = previous_update_values.get(field.name, None)
+            if prev_data and isinstance(prev_data, File):
+                prev_data = URIRef(prev_data.name)
             prev[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = \
-                previous_update_values.get(field.name, None)
+                prev_data
 
         return ret, prev
 
@@ -223,3 +234,6 @@ class FedoraWithElasticConnection:
             return id2url(rhs)
 
         return None
+
+    def fetch_bitstream(self, url):
+        return self.fedora_connection.fetch_bitstream(url)

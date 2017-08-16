@@ -89,7 +89,8 @@ setup(
                       'python-dateutil',
                       'elasticsearch',
                       'cachetools',
-                      'django-model-utils'],
+                      'django-model-utils',
+                      'iso8601'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -97,7 +98,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         'dev': ['check-manifest'],
-        'test': ['coverage', 'django_nose'],
+        'test': ['coverage', 'django_nose', 'Pillow'],
     },
 
     # If there are data files included in your packages that need to be

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 import dateutil.parser
+from django.db import models
 from rdflib import URIRef, Literal
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation
@@ -78,7 +81,11 @@ class FedoraUpdateQuery:
 
 class InsertQuery:
     def __init__(self, objects):
-        self.objects = objects
+        self._objects = objects
+
+    @property
+    def objects(self):
+        return self._objects
 
 
 class InsertScanner:
@@ -101,6 +108,9 @@ class SelectScanner:
         self.iter = iter(self.scanner)
         self.mapping_cache = mapping_cache
         self.result_metadata = result_metadata
+        self.search_to_columns = {
+            x[1] : x for x in self.columns
+        }
         self.eof = False
 
     def __next__(self):
@@ -147,6 +157,12 @@ class SelectScanner:
             return val
         if _type == 'date':
             return dateutil.parser.parse(val)
+        if _type == 'boolean':
+            return bool(val)
+        if _type == 'double':
+            return float(val)
+        if _type == 'integer':
+            return int(val)
         raise NotImplementedError('Deserialization of type %s not yet implemented' % _type)
 
 

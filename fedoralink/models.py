@@ -3,9 +3,11 @@ import traceback
 
 from django.db import models
 from django.db.models import TextField, CharField, ForeignKey, BinaryField
+from django.db.models.signals import post_init
 from django.utils.translation import ugettext_lazy as _
 from model_utils import FieldTracker
 
+from fedoralink.db.rdf import RDFMetadata
 from fedoralink.db.utils import rdf2search
 from fedoralink.fedora_meta import FedoraOptions, FedoraFieldOptions
 from fedoralink.fedorans import CESNET, CESNET_TYPE
@@ -23,7 +25,7 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
         clz._meta.fedora_options = \
             FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types,
                           primary_rdf_type=primary_rdf_type, field_options=field_options,
-                          explicitly_declared=True, default_parent=default_parent)
+                          explicitly_declared=True, default_parent=default_parent, setup_storage=True)
 
         fld = FedoraResourceUrlField(null=True, blank=True, unique=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')
@@ -84,3 +86,14 @@ class ResourceType(models.Model):
     # TODO: Migrate metadata app from oarepo to fedoralink??? Until then, just use a Fedora resource uri
     # model_description = models.ForeignKey('MetadataDescription', verbose_name=_('Model metadata description'))
     model_description = CharField(verbose_name=_('Model metadata description'), max_length=2048)
+
+@fedora()
+class BinaryObject(models.Model):
+    pass
+
+def _on_fedora_post_init(sender, **kwargs):
+    if hasattr(sender._meta, 'fedora_options') and not hasattr(sender, 'fedora_meta'):
+        # create empty metadata
+        sender.fedora_meta = RDFMetadata('')
+
+post_init.connect(_on_fedora_post_init)

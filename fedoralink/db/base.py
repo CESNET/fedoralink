@@ -1,7 +1,12 @@
 from __future__ import unicode_literals
 
+import datetime
 import logging
+from uuid import UUID
 
+import decimal
+
+import iso8601
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.backends.base.features import BaseDatabaseFeatures
@@ -10,6 +15,7 @@ from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.base.validation import BaseDatabaseValidation
 from django import VERSION as django_version
+from django.db import models
 
 from fedoralink.db import FedoraError
 from fedoralink.db.connection import FedoraWithElasticConnection
@@ -85,7 +91,7 @@ class NotCast(object):
         return Operation('not', other)
 
 
-class DatabaseOperations(BaseDatabaseOperations):
+class FedoraDatabaseOperations(BaseDatabaseOperations):
     compiler_module = "fedoralink.db.compiler"
 
     def quote_name(self, name):
@@ -120,6 +126,47 @@ class DatabaseOperations(BaseDatabaseOperations):
         subexpression types (e.g., date expressions)
         """
         return Operation(connector, *sub_expressions)
+
+    def get_db_converters(self, expression):
+        converters = super(FedoraDatabaseOperations, self).get_db_converters(expression)
+        field = expression.output_field
+        print(field, type(field))
+        if isinstance(field, models.UUIDField):
+            converters += [self.convert_uuid]
+        if isinstance(field, models.DecimalField):
+            converters += [self.convert_decimal]
+        if isinstance(field, models.DateTimeField):
+            converters += [self.convert_datetime]
+        if isinstance(field, models.TimeField):
+            converters += [self.convert_time]
+        if isinstance(field, models.DateField):
+            converters += [self.convert_date]
+        return converters
+
+    def convert_uuid(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = UUID(value)
+        return value
+
+    def convert_decimal(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = decimal.Decimal(value)
+        return value
+
+    def convert_date(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = iso8601.parse_date(value).date()
+        return value
+
+    def convert_time(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = datetime.datetime.strptime(value, "%H:%M:%S.%f").time()
+        return value
+
+    def convert_datetime(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = iso8601.parse_date(value)
+        return value
 
 
 class DatabaseValidation(BaseDatabaseValidation):
@@ -213,13 +260,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     features_class = DatabaseFeatures
     introspection_class = DatabaseIntrospection
     validation_class = DatabaseValidation
-    ops_class = DatabaseOperations
+    ops_class = FedoraDatabaseOperations
 
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         if django_version[:2] < (1, 11):
-            self.ops = DatabaseOperations(self)
+            self.ops = FedoraDatabaseOperations(self)
             self.client = DatabaseClient(self)
             self.features = DatabaseFeatures(self)
             self.creation = DatabaseCreation(self)
