@@ -2,11 +2,12 @@ import logging
 import traceback
 
 from django.db import models
+from django.db.models import TextField, CharField, ForeignKey, BinaryField
 from django.utils.translation import ugettext_lazy as _
 from model_utils import FieldTracker
 
 from fedoralink.db.utils import rdf2search
-from fedoralink.fedora_meta import FedoraOptions
+from fedoralink.fedora_meta import FedoraOptions, FedoraFieldOptions
 from fedoralink.fedorans import CESNET, CESNET_TYPE
 from fedoralink.manager import FedoraManager
 
@@ -24,7 +25,7 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
                           primary_rdf_type=primary_rdf_type, field_options=field_options,
                           explicitly_declared=True, default_parent=default_parent)
 
-        fld = FedoraResourceUrlField(null=True, blank=True, verbose_name=_('Fedora resource URL'))
+        fld = FedoraResourceUrlField(null=True, blank=True, unique=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')
 
         # add FieldTracker field
@@ -55,3 +56,31 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
 @fedora()
 class FedoraObject(models.Model):
     pass
+
+
+@fedora(namespace=CESNET_TYPE, rdf_types=(CESNET_TYPE.Template,))
+#TODO: how to set field options here???        field_options={'label': FedoraFieldOptions(label, rdf_types=CESNET_TYPE.label),...})
+class Template(models.Model):
+    label = TextField(verbose_name=_('Label'))
+    tags = TextField(verbose_name=_('Tags'))
+    data = BinaryField(verbose_name=_('Template data'), null=True)
+
+
+@fedora(namespace=CESNET_TYPE, rdf_types=(CESNET_TYPE.ResourceType,))
+#TODO: how to set field options here???        field_options={'label': FedoraFieldOptions(label, rdf_types=CESNET_TYPE.label),...})
+class ResourceType(models.Model):
+    label = TextField(verbose_name=_('Label'))
+
+    template_view = ForeignKey(Template, to_field='fedora_id', verbose_name=_('Template for view'),
+                               related_name='template_view', null=True, on_delete=models.SET_NULL)
+    template_edit = ForeignKey(Template, to_field='fedora_id', verbose_name=_('Template for edit'),
+                               related_name='template_edit', null=True, on_delete=models.SET_NULL)
+    template_list_item = ForeignKey(Template, to_field='fedora_id', verbose_name=_('Template for item list view'),
+                                    related_name='template_list', null=True, on_delete=models.SET_NULL)
+
+    controller = TextField(verbose_name=_('Controller class'))
+    rdf_types = TextField(verbose_name=_('RDF types'))
+
+    # TODO: Migrate metadata app from oarepo to fedoralink??? Until then, just use a Fedora resource uri
+    # model_description = models.ForeignKey('MetadataDescription', verbose_name=_('Model metadata description'))
+    model_description = CharField(verbose_name=_('Model metadata description'), max_length=2048)
