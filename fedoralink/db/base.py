@@ -130,7 +130,6 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
     def get_db_converters(self, expression):
         converters = super(FedoraDatabaseOperations, self).get_db_converters(expression)
         field = expression.output_field
-        print(field, type(field))
         if isinstance(field, models.UUIDField):
             converters += [self.convert_uuid]
         if isinstance(field, models.DecimalField):
