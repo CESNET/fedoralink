@@ -1,3 +1,9 @@
+import django
+django.setup()
+
+from fedoralink.tests.utils import FedoraTestBase
+
+
 import logging
 import unittest.util
 from io import BytesIO
@@ -5,9 +11,7 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from fedoralink.idmapping import url2id
-from fedoralink.tests.testserver.testapp.models import Simple, BinaryFieldTypes
-from .utils import FedoraTestBase
+from fedoralink.tests.testserver.testapp.models import BinaryFieldTypes
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True

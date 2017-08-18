@@ -4,7 +4,7 @@ import django.db.models.lookups
 import re
 from django.core.exceptions import FieldError
 from django.core.files import File
-from django.db.models import AutoField
+from django.db.models import AutoField, ForeignKey
 from django.db.models.fields.files import FieldFile
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
@@ -143,15 +143,24 @@ class FedoraWithElasticConnection:
 
     @staticmethod
     def _object_to_insert_data(opts, obj, fields, compiler):
+        _fields = {}
+        for field in fields:
+            if hasattr(field, 'fedora_options'):
+                if isinstance(field, ForeignKey):
+                    referenced_fedora_id = getattr(obj, field.name).fedora_id
+                    if referenced_fedora_id:
+                        val = URIRef(referenced_fedora_id)
+                    else:
+                        val = None
+                else:
+                    val = compiler.prepare_value(field, compiler.pre_save_val(field, obj))
+
+                _fields[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
         ret = {
             'parent': getattr(obj, '_fedora_parent', None),
             'bitstream': getattr(obj, 'fedora_binary_stream', None),
             'doc_type': rdf2search(opts.fedora_options.primary_rdf_type),
-            'fields': {
-                (field.fedora_options.rdf_name, field.fedora_options.search_name):
-                    compiler.prepare_value(field, compiler.pre_save_val(field, obj))
-                for field in fields if hasattr(field, 'fedora_options')
-            },
+            'fields': _fields,
             'options': opts.fedora_options
         }
         ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [URIRef(x) for x in opts.fedora_options.rdf_types]

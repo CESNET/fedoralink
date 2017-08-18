@@ -274,12 +274,16 @@ class FedoraConnection(object):
             elif isinstance(fedora_col, FedoraMetadataAnnotation):
                 ret.append(FedoraMetadata(obj, from_search=False))
             # TODO: should the conversion logic be here or is it ok to have it just in fedoralink.db.base ?
-            elif isinstance(django_field, models.CharField) or isinstance(django_field, models.TextField) or \
-                    isinstance(django_field, IntegerField) or \
-                    isinstance(django_field, models.FloatField) or \
-                    isinstance(django_field, models.GenericIPAddressField) or \
-                    isinstance(django_field, models.BooleanField) or \
-                    isinstance(django_field, models.FileField):
+            elif (
+                    isinstance(django_field, models.CharField) or
+                    isinstance(django_field, models.TextField) or
+                    isinstance(django_field, IntegerField) or
+                    isinstance(django_field, models.FloatField) or
+                    isinstance(django_field, models.GenericIPAddressField) or
+                    isinstance(django_field, models.BooleanField) or
+                    isinstance(django_field, models.FileField) or
+                    isinstance(django_field, models.AutoField)
+            ):
                 field_data = obj[URIRef(field_name)]
                 if len(field_data) == 0:
                     ret.append(None)
@@ -371,7 +375,7 @@ class FedoraConnection(object):
                     val = base64.b64decode(val)
                     ret.append(val)
             else:
-                raise NotImplementedError('Returning anything else than id is not implemented yet, received %s' % django_field)
+                raise NotImplementedError('Can not convert field %s from Fedora to row' % type(django_field))
         return ret
 
     def update(self, query):
