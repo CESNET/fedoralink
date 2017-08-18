@@ -79,6 +79,7 @@ class FedoraTestBase(TransactionTestCase):
 
 class FedoralinkTestBase(FedoraTestBase):
     def setUp(self):
+        super().setUp()
         call_command('migrate', '--database', 'repository', 'testapp')
         time.sleep(1)
 
