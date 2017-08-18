@@ -2,7 +2,7 @@ import logging
 import unittest.util
 
 from fedoralink.tests.testserver.testapp.models import Simple
-from fedoralink.tests.utils import FedoraTestBase
+from fedoralink.tests.utils import FedoralinkTestBase
 from fedoralink.authentication.as_user import as_admin
 
 
@@ -12,7 +12,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestSlice(FedoraTestBase):
+class TestSlice(FedoralinkTestBase):
     """
     Test slice (pagination) in queries
     """

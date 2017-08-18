@@ -37,7 +37,6 @@ class FedoraTestBase(TransactionTestCase):
                 ))
                 print(cursor)
         call_command('migrate', '--database', 'repository', 'fedoralink')
-        call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
         time.sleep(1)
 
@@ -76,6 +75,12 @@ class FedoraTestBase(TransactionTestCase):
                         self.__delete(fc, subject)
 
                 self.assertEqual(len(subjects), 1)
+
+
+class FedoralinkTestBase(FedoraTestBase):
+    def setUp(self):
+        call_command('migrate', '--database', 'repository', 'testapp')
+        time.sleep(1)
 
 
 def same_urls(a, b):

@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from fedoralink.idmapping import url2id
 from fedoralink.tests.testserver.testapp.models import Simple, BinaryFieldTypes
-from .utils import FedoraTestBase
+from .utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -15,7 +15,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestBinary(FedoraTestBase):
+class TestBinary(FedoralinkTestBase):
     """
     Test storing objects and searching them by string properties
     """

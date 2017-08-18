@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from fedoralink.manager import ELASTICSEARCH
 from fedoralink.tests.testserver.testapp.models import BasicFieldTypes
-from .utils import FedoraTestBase
+from .utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -16,7 +16,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH = 2000
 
 
-class TestBasicFieldTypes(FedoraTestBase):
+class TestBasicFieldTypes(FedoralinkTestBase):
     """
     Check that update operation (.save(), .update()) works and is propagated to Elasticsearch 
     """
