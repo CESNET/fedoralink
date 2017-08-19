@@ -98,7 +98,6 @@ class ElasticsearchConnection(object):
 
         url = urllib.parse.urlsplit(urls[0])
         self.elasticsearch_index_name = url.path
-        print(">>>", self.elasticsearch_index_name)
         while self.elasticsearch_index_name.startswith('/'):
             self.elasticsearch_index_name = self.elasticsearch_index_name[1:]
 
@@ -111,9 +110,11 @@ class ElasticsearchConnection(object):
                 "port": urllib.parse.urlsplit(x).port
             } for x in urls
         ])
-        print(">>> >>>", self.namespace_config.prefix)
         if self.namespace_config.prefix:
             self.elasticsearch_index_name += '_%s' % rdf2search(self.namespace_config.prefix)
+
+        # elasticsearch requires lowercase index name
+        self.elasticsearch_index_name = self.elasticsearch_index_name.lower()
 
         if not self.elasticsearch.indices.exists(self.elasticsearch_index_name):
             self.elasticsearch.indices.create(index=self.elasticsearch_index_name,
