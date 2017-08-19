@@ -28,6 +28,7 @@ from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
+from fedoralink.utils import value_to_rdf_literal
 from .delegated_requests import post, delete
 
 log = logging.getLogger(__file__)
@@ -106,7 +107,7 @@ class FedoraConnection(object):
                 elif isinstance(val, FedoraDatabase.Binary):
                     val = Literal(base64.b64encode(val.value).decode('ASCII'), datatype=XSD.string)
                 else:
-                    val = Literal(val)
+                    val = value_to_rdf_literal(val)
             cvals.append(val)
         return cvals
 

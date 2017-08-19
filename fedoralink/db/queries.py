@@ -10,6 +10,7 @@ from fedoralink.db.utils import search2rdf
 from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraResourceUrlField
+from fedoralink.utils import value_to_rdf_literal
 
 
 class FedoraMetadata:
@@ -38,7 +39,7 @@ class FedoraMetadata:
             return ret
         if isinstance(val, URIRef) or isinstance(val, Literal):
             return [val]
-        return [Literal(val)]
+        return [value_to_rdf_literal(val)]
 
     def get(self, key, defaultval=None):
         if not isinstance(key, URIRef):
@@ -145,7 +146,7 @@ class SelectScanner:
             items = source[column[1]]
             if not isinstance(items, list):
                 items = [items]
-            return [Literal(x) for x in items]
+            return [value_to_rdf_literal(x) for x in items]
         return source[column[1]]
 
     def _apply_mapping(self, mapping, key, val):
