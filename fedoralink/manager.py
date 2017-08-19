@@ -1,6 +1,7 @@
 import numbers
 from enum import Enum
 
+import django
 from django.core.exceptions import FieldError
 from django.db.models import QuerySet, sql, CharField, TextField, Count
 from django.db.models.manager import BaseManager
@@ -13,8 +14,8 @@ from fedoralink.fedora_meta import FedoraFieldOptions
 from fedoralink.idmapping import url2id
 
 # constants to be used in FedoraObject.objects.via(...) call
-FEDORA_REPOSITORY    = 1
-ELASTICSEARCH        = 2
+FEDORA_REPOSITORY = 1
+ELASTICSEARCH = 2
 
 
 class GenericFedoraField(TextField):
@@ -49,13 +50,11 @@ class DjangoMetaProxy:
 
 
 class PatchedUpdateQuery(UpdateQuery):
-
     def get_meta(self):
         return DjangoMetaProxy(super().get_meta())
 
 
 class FedoraQuery(sql.Query):
-
     def __init__(self, model):
         super().__init__(model)
         self.fedora_via = None
@@ -79,16 +78,16 @@ class FedoraQuery(sql.Query):
         return [], field, targets, names[1:]
 
     def clone(self, klass=None, memo=None, **kwargs):
-        if hasattr(self, 'chain') and callable(self.chain):
-            # django >=1.11
-            ret = super().clone(**kwargs)
+        if django.VERSION[0] <= 1 and django.VERSION[1] <= 11:
+            if klass is UpdateQuery:
+                klass = PatchedUpdateQuery
+            ret = super().clone(klass=klass, memo=memo, **kwargs)
             ret.fedora_via = self.fedora_via
             ret.previous_update_values = self.previous_update_values
             ret.patched_instance = self.patched_instance
         else:
-            if klass is UpdateQuery:
-                klass = PatchedUpdateQuery
-            ret = super().clone(klass=klass, memo=memo, **kwargs)
+            # django >=1.11
+            ret = super().clone(**kwargs)
             ret.fedora_via = self.fedora_via
             ret.previous_update_values = self.previous_update_values
             ret.patched_instance = self.patched_instance
@@ -113,7 +112,6 @@ class FedoraQuery(sql.Query):
         result = compiler.apply_converters(result, converters)
 
         return result[0] if result[0] else 0
-
 
 
 class FedoraQuerySet(QuerySet):
@@ -151,7 +149,6 @@ class FedoraQuerySet(QuerySet):
         clone = self._clone()
         clone.query.patched_instance = patched_instance
         return clone
-
 
 
 class FedoraManager(BaseManager.from_queryset(FedoraQuerySet)):
