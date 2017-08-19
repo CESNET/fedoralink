@@ -16,7 +16,7 @@ import requests
 from django.db import models
 from django.db.models import IntegerField
 from rdflib import Literal, XSD, URIRef
-from requests import RequestException
+from requests import RequestException, HTTPError
 from requests.auth import HTTPBasicAuth
 
 from fedoralink.authentication.as_user import fedora_auth_local
@@ -65,13 +65,17 @@ class FedoraConnection(object):
                 parent_url = ''
             parent_url = self._get_request_url(parent_url)
             slug = saved_object.get('slug', None)
-            if saved_object['bitstream'] is not None:
-                created_id = self._create_object_from_bitstream(parent_url,
-                                                                         saved_object['bitstream'],
-                                                                         slug)
-                self._update_single_resource(created_id, rdf_metadata)
-            else:
-                created_id = self._create_object_from_metadata(parent_url, rdf_metadata, slug)
+
+            try:
+                if saved_object['bitstream'] is not None:
+                    created_id = self._create_object_from_bitstream(parent_url,
+                                                                             saved_object['bitstream'],
+                                                                             slug)
+                    self._update_single_resource(created_id, rdf_metadata)
+                else:
+                    created_id = self._create_object_from_metadata(parent_url, rdf_metadata, slug)
+            except HTTPError as er:
+                raise RepositoryException('Error creating resource with parent %s' % parent_url, cause=er)
 
             ids.append(created_id)
         return ids

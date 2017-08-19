@@ -20,6 +20,7 @@ class FedoraTestBase(TransactionTestCase):
             time.sleep(1)
         except:
             pass
+        prefix = connections['repository'].get_connection_params()['options']['namespace'].prefix
         with connections['repository'].cursor() as cursor:
             with as_admin():
                 cursor.execute(InsertQuery(
@@ -30,7 +31,7 @@ class FedoraTestBase(TransactionTestCase):
                             'doc_type': None,
                             'fields': {
                             },
-                            'slug': 'test-test',
+                            'slug': prefix,
                             'options': None
                         }
                     ]
