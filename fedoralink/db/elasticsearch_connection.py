@@ -98,7 +98,7 @@ class ElasticsearchConnection(object):
 
         url = urllib.parse.urlsplit(urls[0])
         self.elasticsearch_index_name = url.path
-
+        print(">>>", self.elasticsearch_index_name)
         while self.elasticsearch_index_name.startswith('/'):
             self.elasticsearch_index_name = self.elasticsearch_index_name[1:]
 
