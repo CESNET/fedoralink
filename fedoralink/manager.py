@@ -79,14 +79,25 @@ class FedoraQuery(sql.Query):
         return [], field, targets, names[1:]
 
     def clone(self, klass=None, memo=None, **kwargs):
-        if klass is UpdateQuery:
-            klass = PatchedUpdateQuery
-        ret = super().clone(klass, memo, **kwargs)
-        ret.fedora_via = self.fedora_via
-        ret.previous_update_values = self.previous_update_values
-        ret.patched_instance = self.patched_instance
+        if hasattr(self, 'chain'):
+            # django >=1.11
+            ret = super().clone(**kwargs)
+            ret.fedora_via = self.fedora_via
+            ret.previous_update_values = self.previous_update_values
+            ret.patched_instance = self.patched_instance
+        else:
+            if klass is UpdateQuery:
+                klass = PatchedUpdateQuery
+            ret = super().clone(klass=klass, memo=memo, **kwargs)
+            ret.fedora_via = self.fedora_via
+            ret.previous_update_values = self.previous_update_values
+            ret.patched_instance = self.patched_instance
         return ret
 
+    def chain(self, klass=None):
+        if klass is UpdateQuery:
+            klass = PatchedUpdateQuery
+        return super().chain(klass)
 
     def get_count(self, using):
         """
