@@ -79,7 +79,7 @@ class FedoraQuery(sql.Query):
         return [], field, targets, names[1:]
 
     def clone(self, klass=None, memo=None, **kwargs):
-        if hasattr(self, 'chain'):
+        if hasattr(self, 'chain') and callable(self.chain):
             # django >=1.11
             ret = super().clone(**kwargs)
             ret.fedora_via = self.fedora_via
