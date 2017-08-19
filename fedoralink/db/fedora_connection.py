@@ -15,6 +15,7 @@ import rdflib
 import requests
 from django.db import models
 from django.db.models import IntegerField
+from django.db.models.fields.files import FieldFile
 from rdflib import Literal, XSD, URIRef
 from requests import RequestException, HTTPError
 from requests.auth import HTTPBasicAuth
@@ -138,6 +139,10 @@ class FedoraConnection(object):
 
     def _create_object_from_bitstream(self, parent_url, bitstream, slug):
         log.info('Creating child from bitstream in %s', parent_url)
+
+        if isinstance(bitstream, FieldFile):
+            bitstream = bitstream.file
+
         try:
             # TODO: this is because of Content-Length header, need to handle it more intelligently
             bio = BytesIO()
