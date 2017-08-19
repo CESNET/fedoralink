@@ -111,7 +111,7 @@ class ElasticsearchConnection(object):
                 "port": urllib.parse.urlsplit(x).port
             } for x in urls
         ])
-
+        print(">>> >>>", self.namespace_config.prefix)
         if self.namespace_config.prefix:
             self.elasticsearch_index_name += '_%s' % rdf2search(self.namespace_config.prefix)
 
