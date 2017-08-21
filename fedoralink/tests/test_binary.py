@@ -1,9 +1,6 @@
 import django
 django.setup()
 
-from fedoralink.tests.utils import FedoraTestBase
-
-
 import logging
 import unittest.util
 from io import BytesIO

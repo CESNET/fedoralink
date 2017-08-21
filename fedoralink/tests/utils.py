@@ -1,13 +1,16 @@
-import time
-
 import re
+import time
+import traceback
+
 from django.core.management import call_command
 from django.db import connections
 from django.test import TransactionTestCase
 
+import fedoralink.models
 from fedoralink.authentication.as_user import as_admin
 from fedoralink.db.delegated_requests import delete
 from fedoralink.db.queries import InsertQuery
+from fedoralink.manager import FEDORA_REPOSITORY
 from fedoralink.models import FedoraObject
 
 
@@ -15,11 +18,13 @@ class FedoraTestBase(TransactionTestCase):
     def setUp(self):
         try:
             # try to get the root object. If found, delete the root and wait a bit so that elasticsearch catches
-            FedoraObject.objects.get(fedora_id='')
+            FedoraObject.objects.via(FEDORA_REPOSITORY).get(fedora_id='')
             self.tearDown()
             time.sleep(1)
-        except:
+        except FedoraObject.DoesNotExist:
             pass
+        except:
+            traceback.print_exc()
         prefix = connections['repository'].get_connection_params()['options']['namespace'].prefix
         with connections['repository'].cursor() as cursor:
             with as_admin():

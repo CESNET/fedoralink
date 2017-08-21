@@ -1,7 +1,7 @@
 import django
 django.setup()
 
-from fedoralink.tests.utils import FedoraTestBase
+from fedoralink.tests.utils import FedoralinkTestBase
 
 
 import logging
@@ -19,7 +19,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestForeign(FedoraTestBase):
+class TestForeign(FedoralinkTestBase):
     """
     Test storing objects referencing to other objects
     """
