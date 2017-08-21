@@ -294,7 +294,7 @@ class FedoraConnection(object):
                     isinstance(django_field, models.FileField) or
                     isinstance(django_field, models.AutoField)
             ):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -303,7 +303,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(field_data[0].value)
             elif isinstance(django_field, models.NullBooleanField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -312,7 +312,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(field_data[0].value)
             elif isinstance(django_field, models.UUIDField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -321,7 +321,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(UUID(field_data[0].value))
             elif isinstance(django_field, models.DecimalField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -330,7 +330,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(decimal.Decimal(field_data[0].value))
             elif isinstance(django_field, models.DateTimeField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -342,7 +342,7 @@ class FedoraConnection(object):
                     else:
                         ret.append(field_data[0].value)
             elif isinstance(django_field, models.DateField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -351,7 +351,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(datetime.datetime.strptime(field_data[0].value, "%Y-%m-%d").date())
             elif isinstance(django_field, models.TimeField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -360,7 +360,7 @@ class FedoraConnection(object):
                 else:
                     ret.append(datetime.datetime.strptime(field_data[0].value, "%H:%M:%S.%f").time())
             elif isinstance(django_field, models.DurationField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -372,9 +372,9 @@ class FedoraConnection(object):
                     ret.append(val)
             elif isinstance(django_field, FedoraField):
                 # FedoraField.from_db_value will take care of converting Literal to target type
-                ret.append(obj[URIRef(field_name)])
+                ret.append(obj[URIRef(rdf_name)])
             elif isinstance(django_field, models.BinaryField):
-                field_data = obj[URIRef(field_name)]
+                field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:
                     ret.append(None)
                 elif len(field_data) > 1:
@@ -383,6 +383,17 @@ class FedoraConnection(object):
                 else:
                     val = field_data[0].value
                     val = base64.b64decode(val)
+                    ret.append(val)
+            elif isinstance(django_field, models.ForeignKey):
+                field_data = obj[URIRef(rdf_name)]
+                if len(field_data) == 0:
+                    ret.append(None)
+                elif len(field_data) > 1:
+                    log.warning("Data of field %s can not be represented as a single string,\n"
+                                "taking only the first item. Metadata:\n%s", rdf_name, obj)
+                else:
+                    val = field_data[0].value
+                    val = url2id(val)
                     ret.append(val)
             else:
                 raise NotImplementedError('Can not convert field %s from Fedora to row' % type(django_field))

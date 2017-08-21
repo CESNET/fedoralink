@@ -34,10 +34,13 @@ class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
 
 
 class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
+
     def as_sql(self):
         with self.connection.cursor() as cursor:
             return cursor.connection.get_update_representation(self.query, self, self.connection)
 
+    def prepare_value(self, field, val):
+        return field.get_db_prep_save(val, connection=self.connection)
 
 
 class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):

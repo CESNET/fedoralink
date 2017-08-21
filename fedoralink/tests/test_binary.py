@@ -8,9 +8,8 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from fedoralink.idmapping import url2id
-from fedoralink.tests.testserver.testapp.models import Simple, BinaryFieldTypes
-from .utils import FedoralinkTestBase
+from fedoralink.tests.testserver.testapp.models import BinaryFieldTypes
+from fedoralink.tests.utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -20,7 +19,7 @@ unittest.util._MAX_LENGTH=2000
 
 class TestBinary(FedoralinkTestBase):
     """
-    Test storing objects and searching them by string properties
+    Test storing and retrieving Binary fields, file and image fields
     """
 
     def test_binary(self):
