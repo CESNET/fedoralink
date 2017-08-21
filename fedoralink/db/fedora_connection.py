@@ -15,8 +15,9 @@ import rdflib
 import requests
 from django.db import models
 from django.db.models import IntegerField
+from django.db.models.fields.files import FieldFile
 from rdflib import Literal, XSD, URIRef
-from requests import RequestException
+from requests import RequestException, HTTPError
 from requests.auth import HTTPBasicAuth
 
 from fedoralink.authentication.as_user import fedora_auth_local
@@ -28,6 +29,7 @@ from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
+from fedoralink.utils import value_to_rdf_literal
 from .delegated_requests import post, delete
 
 log = logging.getLogger(__file__)
@@ -65,13 +67,17 @@ class FedoraConnection(object):
                 parent_url = ''
             parent_url = self._get_request_url(parent_url)
             slug = saved_object.get('slug', None)
-            if saved_object['bitstream'] is not None:
-                created_id = self._create_object_from_bitstream(parent_url,
-                                                                         saved_object['bitstream'],
-                                                                         slug)
-                self._update_single_resource(created_id, rdf_metadata)
-            else:
-                created_id = self._create_object_from_metadata(parent_url, rdf_metadata, slug)
+
+            try:
+                if saved_object['bitstream'] is not None:
+                    created_id = self._create_object_from_bitstream(parent_url,
+                                                                             saved_object['bitstream'],
+                                                                             slug)
+                    self._update_single_resource(created_id, rdf_metadata)
+                else:
+                    created_id = self._create_object_from_metadata(parent_url, rdf_metadata, slug)
+            except HTTPError as er:
+                raise RepositoryException('Error creating resource with parent %s' % parent_url, cause=er)
 
             ids.append(created_id)
         return ids
@@ -102,7 +108,7 @@ class FedoraConnection(object):
                 elif isinstance(val, FedoraDatabase.Binary):
                     val = Literal(base64.b64encode(val.value).decode('ASCII'), datatype=XSD.string)
                 else:
-                    val = Literal(val)
+                    val = value_to_rdf_literal(val)
             cvals.append(val)
         return cvals
 
@@ -133,6 +139,10 @@ class FedoraConnection(object):
 
     def _create_object_from_bitstream(self, parent_url, bitstream, slug):
         log.info('Creating child from bitstream in %s', parent_url)
+
+        if isinstance(bitstream, FieldFile):
+            bitstream = bitstream.file
+
         try:
             # TODO: this is because of Content-Length header, need to handle it more intelligently
             bio = BytesIO()

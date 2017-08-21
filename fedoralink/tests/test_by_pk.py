@@ -2,7 +2,7 @@ import logging
 import unittest.util
 
 from fedoralink.tests.testserver.testapp.models import Simple
-from fedoralink.tests.utils import FedoraTestBase
+from fedoralink.tests.utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -10,7 +10,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestByPk(FedoraTestBase):
+class TestByPk(FedoralinkTestBase):
     """
     Test access to fedora resources via url(fedora standard) or integer(django standard) pk 
     """

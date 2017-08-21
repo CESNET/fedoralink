@@ -7,9 +7,9 @@ from django.core.validators import MaxLengthValidator
 from django.db.models import TextField, Field
 from django.utils.functional import SimpleLazyObject
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
-from rdflib import Literal, URIRef
 
 from fedoralink.fedora_meta import FedoraFieldOptions
+from fedoralink.utils import value_to_rdf_literal
 
 log = logging.getLogger('fedoralink.fields')
 
@@ -194,7 +194,7 @@ class FedoraField(Field):
 
         value = [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]
         value = [
-            Literal(x) if not isinstance(x, Literal) and not isinstance(x, URIRef) else x
+            value_to_rdf_literal(x)
                 for x in value
         ]
         return value

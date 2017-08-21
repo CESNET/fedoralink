@@ -1,12 +1,12 @@
 import logging
 
 from fedoralink.models import FedoraObject
-from .utils import FedoraTestBase
+from .utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-class TestMigrate(FedoraTestBase):
+class TestMigrate(FedoralinkTestBase):
     """
     Try to apply migrations of sample fedora models
     """

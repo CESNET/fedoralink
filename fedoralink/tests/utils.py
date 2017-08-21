@@ -20,6 +20,7 @@ class FedoraTestBase(TransactionTestCase):
             time.sleep(1)
         except:
             pass
+        prefix = connections['repository'].get_connection_params()['options']['namespace'].prefix
         with connections['repository'].cursor() as cursor:
             with as_admin():
                 cursor.execute(InsertQuery(
@@ -30,14 +31,13 @@ class FedoraTestBase(TransactionTestCase):
                             'doc_type': None,
                             'fields': {
                             },
-                            'slug': 'test-test',
+                            'slug': prefix,
                             'options': None
                         }
                     ]
                 ))
                 print(cursor)
         call_command('migrate', '--database', 'repository', 'fedoralink')
-        call_command('migrate', '--database', 'repository', 'testapp')
         self.maxDiff = None
         time.sleep(1)
 
@@ -76,6 +76,13 @@ class FedoraTestBase(TransactionTestCase):
                         self.__delete(fc, subject)
 
                 self.assertEqual(len(subjects), 1)
+
+
+class FedoralinkTestBase(FedoraTestBase):
+    def setUp(self):
+        super().setUp()
+        call_command('migrate', '--database', 'repository', 'testapp')
+        time.sleep(1)
 
 
 def same_urls(a, b):

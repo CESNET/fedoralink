@@ -1,6 +1,7 @@
 import logging
 
-from rdflib import Literal
+from django.db.models.fields.files import FieldFile
+from rdflib import Literal, URIRef, XSD
 
 log = logging.getLogger('fedoralink.utils')
 
@@ -183,3 +184,19 @@ known_prefixes = {
 }
 
 known_prefixes_reversed = { v:k for k, v in known_prefixes.items() }
+
+
+def value_to_rdf_literal(x):
+    if isinstance(x, FieldFile):
+        x = x.name
+    if x is None:
+        return x
+    if isinstance(x, str):
+        return Literal(x, datatype=XSD.string)
+    if not isinstance(x, Literal) and not isinstance(x, URIRef):
+        ret = Literal(x)
+    else:
+        ret = x
+    if not ret.datatype and not ret.language:
+        raise Exception('No datatype nor language after conversion of %s<%s>' % (type(x), x))
+    return ret

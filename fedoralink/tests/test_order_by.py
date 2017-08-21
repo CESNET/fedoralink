@@ -2,7 +2,7 @@ import logging
 import unittest.util
 
 from fedoralink.tests.testserver.testapp.models import Simple
-from fedoralink.tests.utils import FedoraTestBase
+from fedoralink.tests.utils import FedoralinkTestBase
 from fedoralink.authentication.as_user import as_admin
 
 
@@ -12,7 +12,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestOrderBy(FedoraTestBase):
+class TestOrderBy(FedoralinkTestBase):
     """
     Test order_by in queries
     """

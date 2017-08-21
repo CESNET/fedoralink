@@ -4,7 +4,7 @@ import unittest.util
 
 from fedoralink.manager import ELASTICSEARCH
 from fedoralink.tests.testserver.testapp.models import Simple
-from .utils import FedoraTestBase
+from .utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -12,7 +12,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestPkViaElasticsearch(FedoraTestBase):
+class TestPkViaElasticsearch(FedoralinkTestBase):
     """
     Check that Elasticsearch could be used for finding fedora objects by their urls
     """

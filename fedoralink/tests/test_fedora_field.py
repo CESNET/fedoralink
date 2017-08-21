@@ -12,7 +12,7 @@ from fedoralink.fedorans import CESNET
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraObject
 from fedoralink.tests.testserver.testapp.models import Simple, Complex, ArrayFieldModel
-from .utils import FedoraTestBase
+from .utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -20,7 +20,7 @@ logging.getLogger('elasticsearch.trace').propagate = True
 unittest.util._MAX_LENGTH=2000
 
 
-class TestFedoraFieldFetch(FedoraTestBase):
+class TestFedoraFieldFetch(FedoralinkTestBase):
     """
     Test storing objects and searching them by string properties
     """
