@@ -109,9 +109,13 @@ class FedoraQuery(sql.Query):
         result = compiler.execute_sql(SINGLE)
 
         converters = compiler.get_converters([x for x in obj.annotation_select.values() if isinstance(x, Count)])
-        result = compiler.apply_converters(result, converters)
+        if django.VERSION[0] <= 1 and django.VERSION[1] <= 11:
+            result = compiler.apply_converters(result, converters)
+        else:
+            result = compiler.apply_converters([result], converters)
+            result = [x for x in result][0][0]
 
-        return result[0] if result[0] else 0
+        return result if result else 0
 
 
 class FedoraQuerySet(QuerySet):
