@@ -1,4 +1,4 @@
-from django.db.models import Field, CharField, Count
+from django.db.models import Field, CharField, Count, ForeignKey
 from django.db.models.expressions import Col, Value
 from django.db.models.sql.where import WhereNode
 
@@ -114,6 +114,7 @@ def add_vendor_to_lookups():
     WhereNode.as_fedoralink = where_as_fedoralink
 
 
+# TODO: remove col_rdf_name
 def get_column_ids(columns, add_count=None):
     ret = []
     for col in columns:
@@ -121,9 +122,8 @@ def get_column_ids(columns, add_count=None):
             continue
         fedora_col = col[1][0]
 
-        django_field = col[0].field
-
         if isinstance(col[0], FedoraMetadataAnnotation):
+            django_field = col[0].field
             ret.append(
                 (
                     None,
@@ -135,6 +135,11 @@ def get_column_ids(columns, add_count=None):
             )
             continue
 
+        if hasattr(col[0], 'target'):
+            django_field = col[0].target
+        else:
+            django_field = col[0].field
+
         if isinstance(col[0], Count):
             pass
         elif not isinstance(fedora_col, Column):
@@ -145,7 +150,10 @@ def get_column_ids(columns, add_count=None):
         if opts:
             rdf_name = opts.rdf_name
             search_name = opts.search_name
-            col_rdf_name = fedora_col.rdf_name
+            if isinstance(django_field, ForeignKey):
+                col_rdf_name = rdf_name
+            else:
+                col_rdf_name = fedora_col.rdf_name
         else:
             if isinstance(fedora_col, FedoraIdColumn):
                 rdf_name = '_id'

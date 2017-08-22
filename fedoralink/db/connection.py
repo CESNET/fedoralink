@@ -4,10 +4,11 @@ import django.db.models.lookups
 import re
 from django.core.exceptions import FieldError
 from django.core.files import File
-from django.db.models import AutoField
+from django.db.models import AutoField, ForeignKey
 from django.db.models.fields.files import FieldFile
 from django.db.models.sql.where import WhereNode
 from rdflib import URIRef, RDF, Literal
+from rdflib.term import Identifier
 
 from fedoralink.db.binary import FedoraBinaryStream
 from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
@@ -143,19 +144,34 @@ class FedoraWithElasticConnection:
 
     @staticmethod
     def _object_to_insert_data(opts, obj, fields, compiler):
+        _fields = FedoraWithElasticConnection._object_to_fields(compiler, obj, fields)
         ret = {
             'parent': getattr(obj, '_fedora_parent', None),
             'bitstream': getattr(obj, 'fedora_binary_stream', None),
             'doc_type': rdf2search(opts.fedora_options.primary_rdf_type),
-            'fields': {
-                (field.fedora_options.rdf_name, field.fedora_options.search_name):
-                    compiler.prepare_value(field, compiler.pre_save_val(field, obj))
-                for field in fields if hasattr(field, 'fedora_options')
-            },
+            'fields': _fields,
             'options': opts.fedora_options
         }
         ret['fields'][(RDF.type, rdf2search('rdf_type'))] = [URIRef(x) for x in opts.fedora_options.rdf_types]
         return ret
+
+    @staticmethod
+    def _object_to_fields(compiler, obj, fields, extra=lambda field:False):
+        _fields = {}
+        for field in fields:
+            val = None
+            if hasattr(field, 'fedora_options'):
+                if isinstance(field, ForeignKey):
+                    referenced_fedora_id = getattr(obj, field.name).fedora_id
+                    if referenced_fedora_id:
+                        val = URIRef(referenced_fedora_id)
+                    else:
+                        val = None
+                else:
+                    val = compiler.prepare_value(field, compiler.pre_save_val(field, obj))
+
+                _fields[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
+        return _fields
 
     def _object_to_update_data(self, pk, compiler):
         ret = {}
@@ -166,34 +182,54 @@ class FedoraWithElasticConnection:
             previous_update_values = fetched_obj.fedora_meta
             compiler.query.previous_update_values = previous_update_values
             compiler.query.patched_instance = fetched_obj
-        for field, model, val in compiler.query.values:
-            if hasattr(val, 'resolve_expression'):
-                val = val.resolve_expression(compiler.query, allow_joins=False, for_save=True)
-                if val.contains_aggregate:
-                    raise FieldError("Aggregate functions are not allowed in this query")
-            elif hasattr(val, 'prepare_database_save'):
-                if field.remote_field:
-                    val = field.get_db_prep_save(
-                        val.prepare_database_save(field),
-                        connection=compiler.connection,
-                    )
-                else:
-                    raise TypeError(
-                        "Tried to update field %s with a model instance, %r. "
-                        "Use a value compatible with %s."
-                        % (field, val, field.__class__.__name__)
-                    )
-            else:
-                val = field.get_db_prep_save(val, connection=compiler.connection)
 
+        # for each field in the updated values get its representation in Fedora
+        for field, model, val in compiler.query.values:
+            # if there are fedora_options, we have enough information to convert the field to fedora representation,
+            # otherwise use the raw value
+            if hasattr(field, 'fedora_options'):
+                val = self._value_to_field(compiler, field, val)
+
+            # add it to the new fedora data
             ret[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = val
-            prev_data = previous_update_values.get(field.name, None)
-            if prev_data and isinstance(prev_data, File):
-                prev_data = URIRef(prev_data.name)
+
+            if isinstance(field, ForeignKey):
+                # if the field is a foreign key, the previous value is id stored in <fieldname>_id, i.e. attname
+                prev_data = previous_update_values.get(field.attname, None)
+            else:
+                # otherwise it is stored under the field name
+                prev_data = previous_update_values.get(field.name, None)
+
+            # TODO: could this be simplified?
+            if prev_data:
+                if isinstance(prev_data, File):
+                    prev_data = URIRef(prev_data.name)
+                elif not(isinstance(prev_data, list) and all([isinstance(x, Identifier) for x in prev_data])):
+                    # the data are not in fedora format, so convert them to fedora representation
+                    if hasattr(field, 'fedora_options'):
+                        prev_data = self._value_to_field(compiler, field, prev_data)
+
+            # and store in the previous fedora data
             prev[(field.fedora_options.rdf_name, field.fedora_options.search_name)] = \
                 prev_data
 
         return ret, prev
+
+    @staticmethod
+    def _value_to_field(compiler, field, val):
+        if isinstance(field, ForeignKey):
+            if isinstance(val, int):
+                referenced_fedora_id = id2url(val)
+            else:
+                referenced_fedora_id = val.fedora_id
+            if referenced_fedora_id:
+                val = URIRef(referenced_fedora_id)
+            else:
+                val = None
+        else:
+            val = compiler.prepare_value(field, val)
+            # val = field.get_db_prep_save(val, connection=compiler.connection)
+        return val
 
     @staticmethod
     def prepare_fedora_options(opts):

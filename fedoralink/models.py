@@ -26,7 +26,7 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
         clz._meta.fedora_options = \
             FedoraOptions(clz, rdf_namespace=namespace, rdf_types=rdf_types,
                           primary_rdf_type=primary_rdf_type, field_options=field_options,
-                          explicitly_declared=True, default_parent=default_parent, setup_storage=True)
+                          explicitly_declared=True, default_parent=default_parent, used_from_decorator=True)
 
         fld = FedoraResourceUrlField(null=True, blank=True, unique=True, verbose_name=_('Fedora resource URL'))
         fld.contribute_to_class(clz, 'fedora_id')

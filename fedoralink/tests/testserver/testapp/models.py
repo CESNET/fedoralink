@@ -26,10 +26,10 @@ class BasicFieldTypes(models.Model):
     char_field = models.CharField(max_length=20)
     text_field = models.TextField()
     slug_field = models.SlugField()
-    url_field  = models.URLField()
+    url_field = models.URLField()
     uuid_field = models.UUIDField()
 
-    int_field  = models.IntegerField()
+    int_field = models.IntegerField()
     biginteger_field = models.BigIntegerField()
     positive_integer_field = models.PositiveIntegerField()
     positive_small_integer_field = models.PositiveSmallIntegerField()
@@ -56,3 +56,14 @@ class BinaryFieldTypes(models.Model):
     binary_field = models.BinaryField()
     file = models.FileField()
     image = models.ImageField()
+
+
+@fedora(namespace=CESNET, rdf_types=[CESNET.foreign])
+class ModelWithForeignKey(models.Model):
+    f = models.ForeignKey(Simple, on_delete=models.SET_NULL)
+
+
+@fedora(namespace=CESNET, rdf_types=[CESNET.foreign2])
+class ModelWithTwoForeignKeys(models.Model):
+    f = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)
+    g = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)

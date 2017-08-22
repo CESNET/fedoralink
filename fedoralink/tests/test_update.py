@@ -1,13 +1,16 @@
+import django
+from rdflib import Literal, XSD
+
+django.setup()
+
 import logging
 import unittest.util
-
-import time
 
 from fedoralink.fedorans import CESNET
 from fedoralink.manager import ELASTICSEARCH
 from fedoralink.models import FedoraObject
 from fedoralink.tests.testserver.testapp.models import Complex
-from .utils import FedoralinkTestBase
+from fedoralink.tests.utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('elasticsearch.trace').propagate = True
@@ -19,7 +22,7 @@ class TestUpdate(FedoralinkTestBase):
     """
     Check that update operation (.save(), .update()) works and is propagated to Elasticsearch 
     """
-
+    #
     def test_update(self):
         o1 = Complex.objects.create(a='1', b='2')
         o1.a = '3'

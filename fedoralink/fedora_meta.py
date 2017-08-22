@@ -80,7 +80,7 @@ class FedoraOptions:
     """
 
     def __init__(self, clz, rdf_namespace=None, rdf_types=None, field_options=None, explicitly_declared=False,
-                 primary_rdf_type=None, default_parent=None, setup_storage=False):
+                 primary_rdf_type=None, default_parent=None, used_from_decorator=False):
 
         self.clz           = clz
         self.rdf_namespace = rdf_namespace
@@ -129,10 +129,12 @@ class FedoraOptions:
                 else:
                     fld.fedora_options = FedoraFieldOptions(field=fld, rdf_namespace=self.rdf_namespace)
 
-                # on FileField, make sure the storage is FedoraStorage
-                if isinstance(fld, models.FileField) and setup_storage:
-                    if not fld.storage or not isinstance(fld.storage, FedoraStorage):
-                        fld.storage = FedoraStorage()
+                if used_from_decorator:
+                    # on FileField, make sure the storage is FedoraStorage
+                    if isinstance(fld, models.FileField):
+                        if not fld.storage or not isinstance(fld.storage, FedoraStorage):
+                            fld.storage = FedoraStorage()
+
 
         if default_parent is None:
             default_parent = clz._meta.db_table

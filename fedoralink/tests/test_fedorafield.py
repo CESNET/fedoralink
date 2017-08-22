@@ -1,12 +1,20 @@
+import django
+django.setup()
+
 from django.core.exceptions import ValidationError
 from django.db import models, connection
 from django.test import TestCase
-from rdflib import Literal
+from rdflib import Literal, XSD
 
 from fedoralink.fields import FedoraField
 
 
 class FedoraFieldTests(TestCase):
+
+    """
+    Tests single field, their construction and deconstruction and from_db_value
+    """
+
     def test_deconstruct(self):
         fld = FedoraField(models.CharField, max_length=10, multiplicity=FedoraField.ANY)
         fld.set_attributes_from_name('a')
@@ -87,18 +95,18 @@ class FedoraFieldTests(TestCase):
         fld1 = FedoraField(models.CharField, max_length=10)
         val = fld1.get_db_prep_value("Lorem ipsum", connection)
         self.assertEqual(val,[
-            Literal("Lorem ipsum")
+            Literal("Lorem ipsum", datatype=XSD.string)
         ])
 
         fld2 = FedoraField(models.CharField, max_length=10, multiplicity=FedoraField.ANY)
         val = fld2.get_db_prep_value(["Lorem", "ipsum"], connection)
         self.assertEqual(val,[
-            Literal("Lorem"),
-            Literal("ipsum")
+            Literal("Lorem", datatype=XSD.string),
+            Literal("ipsum", datatype=XSD.string)
         ])
 
         fld3 = FedoraField(models.IntegerField)
         val = fld3.get_db_prep_value(12, connection)
         self.assertEqual(val,[
-            Literal(12)
+            Literal(12, datatype=XSD.integer)
         ])

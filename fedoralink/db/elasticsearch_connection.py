@@ -265,6 +265,10 @@ class ElasticsearchConnection(object):
                 field_mapping = {
                     'type': 'keyword',
                 }
+            elif isinstance(fld, django_fields.ForeignKey):
+                field_mapping = {
+                    'type': 'keyword',
+                }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
 
