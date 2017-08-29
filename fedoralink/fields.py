@@ -4,7 +4,7 @@ import logging
 from django.core import exceptions
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxLengthValidator
-from django.db.models import TextField, Field
+from django.db.models import TextField, Field, ForeignKey
 from django.utils.functional import SimpleLazyObject
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 
@@ -136,16 +136,23 @@ class FedoraField(Field):
                 return []
             return value
 
-        # deserialize array items
-        base_from_db_value = getattr(self.base_field, 'from_db_value', None)
-        if base_from_db_value:
+        if isinstance(self.base_field, ForeignKey):
+            # TODO: change this to use a similar approach as ForwardManyToOneDescriptor
+            target_cls = self.base_field.related_model
             value = [
-                self.base_field.from_db_value(x.object, expression, connection, context) for x in value
+                target_cls.objects.get(fedora_id=x) for x in value
             ]
         else:
-            value = [
-                x.value for x in value
-            ]
+            # deserialize array items
+            base_from_db_value = getattr(self.base_field, 'from_db_value', None)
+            if base_from_db_value:
+                value = [
+                    self.base_field.from_db_value(x.object, expression, connection, context) for x in value
+                ]
+            else:
+                value = [
+                    x.value for x in value
+                ]
 
         # if we can return multiple values, return them
         if self.is_array:
@@ -192,7 +199,11 @@ class FedoraField(Field):
         if not self.is_array or not(type(value) is list or type(value) is tuple or type(value) is set):
             value = [value]
 
-        value = [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]
+        if isinstance(self.base_field, ForeignKey):
+            # convert foreign key to its id and call the foreign key
+            value = [i.fedora_id for i in value]
+        else:
+            value = [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]
         value = [
             value_to_rdf_literal(x)
                 for x in value

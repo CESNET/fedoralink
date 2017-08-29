@@ -67,3 +67,9 @@ class ModelWithForeignKey(models.Model):
 class ModelWithTwoForeignKeys(models.Model):
     f = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)
     g = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)
+
+
+@fedora(namespace=CESNET, rdf_types=[CESNET.foreign_many])
+class ModelWithForeignKeyArray(models.Model):
+    f = FedoraField(models.ForeignKey(Simple, on_delete=models.SET_NULL), multiplicity=FedoraField.ANY)
+
