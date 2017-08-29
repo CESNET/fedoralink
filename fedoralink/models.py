@@ -60,29 +60,11 @@ def fedora(namespace=None, rdf_types=None, field_options=None, primary_rdf_type=
 class FedoraObject(models.Model):
     pass
 
-# TODO: Oboje hodit do oarepo-api
-@fedora(namespace=CESNET_TYPE, rdf_types=(CESNET_TYPE.Template,))
-class Template(models.Model):
-    pass
-
-@fedora(namespace=CESNET_TYPE, rdf_types=(CESNET_TYPE.ResourceType,))
-class ResourceType(models.Model):
-    label = TextField(verbose_name=_('Label'))
-
-    template_view = FileField(null=True)
-    template_edit = FileField(null=True)
-    template_list_item = FileField(null=True)
-
-    controller = TextField(verbose_name=_('Controller class'))
-    rdf_types = FedoraField(TextField(verbose_name=_('RDF types')), multiplicity=FedoraField.ANY)
-
-    # TODO: Migrate metadata app from oarepo to fedoralink??? Until then, just use a Fedora resource uri
-    # model_description = models.ForeignKey('MetadataDescription', verbose_name=_('Model metadata description'))
-    model_description = CharField(verbose_name=_('Model metadata description'), max_length=2048)
 
 @fedora()
 class BinaryObject(models.Model):
     pass
+
 
 def _on_fedora_post_init(sender, **kwargs):
     if hasattr(sender._meta, 'fedora_options') and not hasattr(sender, 'fedora_meta'):

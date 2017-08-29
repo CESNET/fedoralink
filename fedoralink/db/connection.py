@@ -162,7 +162,8 @@ class FedoraWithElasticConnection:
             val = None
             if hasattr(field, 'fedora_options'):
                 if isinstance(field, ForeignKey):
-                    referenced_fedora_id = getattr(obj, field.name).fedora_id
+                    field_value = getattr(obj, field.name)
+                    referenced_fedora_id = getattr(field_value, 'fedora_id', None)
                     if referenced_fedora_id:
                         val = URIRef(referenced_fedora_id)
                     else:
