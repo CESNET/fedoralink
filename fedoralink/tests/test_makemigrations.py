@@ -27,3 +27,4 @@ class TestMakeMigrations(FedoralinkTestBase):
     def test_makemigrations(self):
         call_command('makemigrations', 'testapp')
         call_command('migrate', '--database', 'repository', 'testapp')
+        call_command('migrate', 'testapp')

@@ -60,16 +60,17 @@ class BinaryFieldTypes(models.Model):
 
 @fedora(namespace=CESNET, rdf_types=[CESNET.foreign])
 class ModelWithForeignKey(models.Model):
-    f = models.ForeignKey(Simple, on_delete=models.SET_NULL)
+    f = models.ForeignKey(Simple, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 @fedora(namespace=CESNET, rdf_types=[CESNET.foreign2])
 class ModelWithTwoForeignKeys(models.Model):
-    f = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)
-    g = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL)
+    f = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL, null=True, blank=True)
+    g = models.ForeignKey(Simple, related_name='+', on_delete=models.SET_NULL, null=True, blank=True)
 
 
 @fedora(namespace=CESNET, rdf_types=[CESNET.foreign_many])
 class ModelWithForeignKeyArray(models.Model):
-    f = FedoraField(models.ForeignKey(Simple, on_delete=models.SET_NULL), multiplicity=FedoraField.ANY)
+    f = FedoraField(models.ForeignKey(Simple, on_delete=models.SET_NULL, null=True, blank=True),
+                    multiplicity=FedoraField.ANY)
 
