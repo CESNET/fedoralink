@@ -13,10 +13,11 @@ from elasticsearch import Elasticsearch
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
 from fedoralink.db.utils import rdf2search
-from fedoralink.fields import FedoraField
+from fedoralink.fields import FedoraField, JSONField
 from fedoralink.idmapping import id2url
 from fedoralink.manager import ELASTICSEARCH
 from fedoralink.models import FedoraResourceUrlField, FedoraObject
+from fedoralink.utils import Json
 from . import FedoraError
 
 log = logging.getLogger(__file__)
@@ -269,6 +270,10 @@ class ElasticsearchConnection(object):
                 field_mapping = {
                     'type': 'keyword',
                 }
+            elif isinstance(fld, JSONField):
+                field_mapping = {
+                    'type': 'object',
+                }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
 
@@ -397,13 +402,24 @@ class ElasticsearchConnection(object):
                 result_metadata=hits
             )
 
+    @staticmethod
+    def get_serialized_value(v):
+
+        if isinstance(v, list) or isinstance(v, tuple):
+            return [ElasticsearchConnection.get_serialized_value(vv) for vv in v]
+
+        if isinstance(v, Json):
+            return v.value
+        else:
+            return v
+
     def index_resources(self, query, ids):
         from fedoralink.db.base import FedoraDatabase
 
         for obj, obj_id in zip(query.objects, ids):
             if not obj['doc_type']:
                 continue
-            serialized_object = {k[1]: v for k, v in obj['fields'].items()
+            serialized_object = {k[1]: self.get_serialized_value(v) for k, v in obj['fields'].items()
                                             if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
@@ -415,7 +431,7 @@ class ElasticsearchConnection(object):
             self.elasticsearch.indices.delete(index=self.elasticsearch_index_name)
 
     def update(self, query):
-        serialized_object = {k[1]: v for k, v in query.update_data.items()}
+        serialized_object = {k[1]: self.get_serialized_value(v) for k, v in query.update_data.items()}
         try:
             mo = FedoraObject.objects.via(ELASTICSEARCH).get(fedora_id=query.pk)
         except:

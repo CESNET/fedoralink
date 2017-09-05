@@ -16,7 +16,7 @@ def runtests():
     # failures = runner.run_suite(suite)
     # sys.exit(failures)
 
-    ret = subprocess.call(['coverage', 'run', 'fedoralink/tests/testserver/manage.py', 'test'])
+    ret = subprocess.call(['coverage', 'run', 'fedoralink/tests/testserver/manage.py', 'test', '--logging-level=DEBUG'])
     ret2 = subprocess.call(['coverage', 'html'])
     ret1 = subprocess.call(['coverage', 'report'])
     sys.exit(ret + ret1 + ret2)

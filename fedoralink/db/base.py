@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import json
 import logging
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from fedoralink.db import FedoraError
 from fedoralink.db.connection import FedoraWithElasticConnection
 from fedoralink.db.cursor import DatabaseCursor
 from fedoralink.db.lookups import Operation
+from fedoralink.fields import JSONField
 
 log = logging.getLogger(__file__)
 
@@ -140,6 +142,8 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
             converters += [self.convert_time]
         if isinstance(field, models.DateField):
             converters += [self.convert_date]
+        if isinstance(field, JSONField):
+            converters += [self.convert_json]
         return converters
 
     def convert_uuid(self, value, expression, connection, context):
@@ -165,6 +169,11 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
     def convert_datetime(self, value, expression, connection, context):
         if value is not None and isinstance(value, str):
             value = iso8601.parse_date(value)
+        return value
+
+    def convert_json(self, value, expression, connection, context):
+        if value is not None and isinstance(value, str):
+            value = json.loads(value)
         return value
 
 

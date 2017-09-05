@@ -5,11 +5,12 @@ from django.core import exceptions
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxLengthValidator
 from django.db.models import TextField, Field, ForeignKey
+from django.forms import Textarea
 from django.utils.functional import SimpleLazyObject
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 
 from fedoralink.fedora_meta import FedoraFieldOptions
-from fedoralink.utils import value_to_rdf_literal
+from fedoralink.utils import value_to_rdf_literal, Json
 
 log = logging.getLogger('fedoralink.fields')
 
@@ -270,3 +271,62 @@ class FedoraField(Field):
                     )
         else:
             self.base_field.run_validators(value)
+
+
+class JSONField(Field):
+    """
+    Class taken from postgresql. Could not use it directly since that would bring
+    dependency to psycopg2
+    """
+    empty_strings_allowed = False
+    description = _('A JSON object')
+    default_error_messages = {
+        'invalid': _("Value must be valid JSON."),
+    }
+
+    def __init__(self, verbose_name=None, name=None, encoder=None, **kwargs):
+        if encoder and not callable(encoder):
+            raise ValueError("The encoder parameter must be a callable object.")
+        self.encoder = encoder
+        super(JSONField, self).__init__(verbose_name, name, **kwargs)
+
+    def db_type(self, connection):
+        return 'string'
+
+    def deconstruct(self):
+        name, path, args, kwargs = super(JSONField, self).deconstruct()
+        if self.encoder is not None:
+            kwargs['encoder'] = self.encoder
+        return name, path, args, kwargs
+
+    def get_prep_value(self, value):
+        if value is not None:
+            return Json(value, encoder=self.encoder)
+        return value
+
+    def validate(self, value, model_instance):
+        super(JSONField, self).validate(value, model_instance)
+        options = {'cls': self.encoder} if self.encoder else {}
+        try:
+            json.dumps(value, **options)
+        except TypeError:
+            raise exceptions.ValidationError(
+                self.error_messages['invalid'],
+                code='invalid',
+                params={'value': value},
+            )
+
+    def value_to_string(self, obj):
+        return self.value_from_object(obj)
+
+    def formfield(self, **kwargs):
+        defaults = {'form_class': Textarea}
+        defaults.update(kwargs)
+        return super(JSONField, self).formfield(**defaults)
+
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = json.loads(value, default=self.encoder)
+        elif isinstance(value, Json):
+            value = value.value
+        return value

@@ -2,7 +2,7 @@ from django.db import models
 
 from fedoralink.fedorans import CESNET
 from fedoralink.models import fedora
-from fedoralink.fields import FedoraField
+from fedoralink.fields import FedoraField, JSONField
 
 
 @fedora(namespace=CESNET)
@@ -73,4 +73,10 @@ class ModelWithTwoForeignKeys(models.Model):
 class ModelWithForeignKeyArray(models.Model):
     f = FedoraField(models.ForeignKey(Simple, on_delete=models.SET_NULL, null=True, blank=True),
                     multiplicity=FedoraField.ANY)
+
+
+@fedora(namespace=CESNET, rdf_types=[CESNET.json])
+class JsonModel(models.Model):
+    json_single = JSONField(null=True, blank=True)
+    json_multiple = FedoraField(JSONField(null=True, blank=True), multiplicity=FedoraField.ANY)
 

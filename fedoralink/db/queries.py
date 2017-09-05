@@ -10,7 +10,7 @@ from fedoralink.db.utils import search2rdf
 from fedoralink.fields import FedoraField
 from fedoralink.idmapping import url2id
 from fedoralink.models import FedoraResourceUrlField
-from fedoralink.utils import value_to_rdf_literal
+from fedoralink.utils import value_to_rdf_literal, Json
 
 
 class FedoraMetadata:
@@ -153,6 +153,9 @@ class SelectScanner:
         mapping = mapping.get(key, None)
         if not mapping:
             return val
+        if 'properties' in mapping:
+            # it is an object
+            return Json(val, encoder=None)
         _type = mapping['type']
         if _type == 'keyword':
             return val
@@ -164,6 +167,8 @@ class SelectScanner:
             return float(val)
         if _type == 'integer':
             return int(val)
+        if _type == 'object':
+            return val
         raise NotImplementedError('Deserialization of type %s not yet implemented' % _type)
 
 

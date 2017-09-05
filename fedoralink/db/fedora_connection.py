@@ -25,11 +25,11 @@ from fedoralink.db.exceptions import RepositoryException
 from fedoralink.db.lookups import get_column_ids, FedoraIdColumn, FedoraMetadataAnnotation
 from fedoralink.db.queries import FedoraResourceScanner, FedoraMetadata
 from fedoralink.db.rdf import RDFMetadata
-from fedoralink.fields import FedoraField
+from fedoralink.fields import FedoraField, JSONField
 from fedoralink.idmapping import url2id
 # noinspection PyUnresolvedReferences
 # import delegated_requests to wrap around
-from fedoralink.utils import value_to_rdf_literal
+from fedoralink.utils import value_to_rdf_literal, Json
 from .delegated_requests import post, delete
 
 log = logging.getLogger(__file__)
@@ -102,6 +102,8 @@ class FedoraConnection(object):
         for val in vals:
             if val is None:
                 continue
+            if isinstance(val, Json):
+                val = str(val)
             if not isinstance(val, Literal):
                 if isinstance(val, str):
                     val = Literal(val, datatype=XSD.string)
@@ -292,7 +294,8 @@ class FedoraConnection(object):
                     isinstance(django_field, models.GenericIPAddressField) or
                     isinstance(django_field, models.BooleanField) or
                     isinstance(django_field, models.FileField) or
-                    isinstance(django_field, models.AutoField)
+                    isinstance(django_field, models.AutoField) or
+                    isinstance(django_field, JSONField)
             ):
                 field_data = obj[URIRef(rdf_name)]
                 if len(field_data) == 0:

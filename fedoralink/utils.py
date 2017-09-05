@@ -1,9 +1,18 @@
+import json
 import logging
 
 from django.db.models.fields.files import FieldFile
 from rdflib import Literal, URIRef, XSD
 
 log = logging.getLogger('fedoralink.utils')
+
+class Json():
+    def __init__(self, value, encoder):
+        self.value   = value
+        self.encoder = encoder
+
+    def __str__(self):
+        return json.dumps(self.value, default=self.encoder)
 
 
 def get_class( kls ):
@@ -192,6 +201,8 @@ def value_to_rdf_literal(x):
     if x is None:
         return x
     if isinstance(x, URIRef):
+        return x
+    if isinstance(x, Json):
         return x
     if isinstance(x, Literal):
         ret = x
