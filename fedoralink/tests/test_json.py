@@ -47,6 +47,15 @@ class TestJson(FedoralinkTestBase):
         o.save()
 
         o2 = JsonModel.objects.get(fedora_id=o.fedora_id)
-        self.assertDictEqual(o.json_multiple[0], o2.json_multiple[0])
-        self.assertDictEqual(o.json_multiple[1], o2.json_multiple[1])
+        self.assertDictEqual({'a': 1} if 'a' in o2.json_multiple[0] else {'b': 2}, o2.json_multiple[0])
+        self.assertDictEqual({'a': 1} if 'a' in o2.json_multiple[1] else {'b': 2}, o2.json_multiple[1])
 
+        o.json_multiple = [
+            {'b': 1},
+            {'a': 2}
+        ]
+        o.save()
+
+        o2 = JsonModel.objects.get(fedora_id=o.fedora_id)
+        self.assertDictEqual({'a': 2} if 'a' in o2.json_multiple[0] else {'b': 1}, o2.json_multiple[0])
+        self.assertDictEqual({'a': 2} if 'a' in o2.json_multiple[1] else {'b': 1}, o2.json_multiple[1])

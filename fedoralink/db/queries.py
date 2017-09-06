@@ -168,7 +168,9 @@ class SelectScanner:
         if _type == 'integer':
             return int(val)
         if _type == 'object':
-            return val
+            if isinstance(val, list):
+                return [Json(x, encoder=None) for x in val]
+            return Json(val, encoder=None)
         raise NotImplementedError('Deserialization of type %s not yet implemented' % _type)
 
 

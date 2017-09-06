@@ -8,6 +8,7 @@ from django.db.models import TextField, Field, ForeignKey
 from django.forms import Textarea
 from django.utils.functional import SimpleLazyObject
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
+from rdflib import Literal
 
 from fedoralink.fedora_meta import FedoraFieldOptions
 from fedoralink.utils import value_to_rdf_literal, Json
@@ -65,10 +66,16 @@ class GenericFedoraField(TextField):
 # Field with fedora metadata, can be used to wrap fields on models stored in Fedora
 #
 class FedoraField(Field):
+
     empty_strings_allowed = False
     default_error_messages = {
         'item_invalid': _('Item %(nth)s in the array did not validate: '),
     }
+
+    description = 'Fedora field that allows to specify multiplicity. When multiplicity' \
+                  'is >1, the returned/expected bound data is an array of items. Note that' \
+                  'fedora has no concept of ordering, the data after fetch can come in different' \
+                  'order, even data from two fetches of a single object.'
 
     ANY = 100000
 
@@ -148,7 +155,7 @@ class FedoraField(Field):
             base_from_db_value = getattr(self.base_field, 'from_db_value', None)
             if base_from_db_value:
                 value = [
-                    self.base_field.from_db_value(x.object, expression, connection, context) for x in value
+                    self.base_field.from_db_value(x.value, expression, connection, context) for x in value
                 ]
             else:
                 value = [
@@ -325,8 +332,13 @@ class JSONField(Field):
         return super(JSONField, self).formfield(**defaults)
 
     def to_python(self, value):
+        if isinstance(value, Literal):
+            value = value.value
         if isinstance(value, str):
-            value = json.loads(value, default=self.encoder)
+            value = json.loads(value)
         elif isinstance(value, Json):
             value = value.value
         return value
+
+    def from_db_value(self, value, expression, connection, context):
+        return self.to_python(value)

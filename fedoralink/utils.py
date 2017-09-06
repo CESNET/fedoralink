@@ -12,7 +12,7 @@ class Json():
         self.encoder = encoder
 
     def __str__(self):
-        return json.dumps(self.value, default=self.encoder)
+        return json.dumps(self.value, default=self.encoder, sort_keys=True)
 
 
 def get_class( kls ):
