@@ -6,12 +6,8 @@ django.setup()
 
 import logging
 import unittest.util
-from io import BytesIO
 
-from PIL import Image
-from django.core.files.uploadedfile import SimpleUploadedFile
-
-from fedoralink.tests.testserver.testapp.models import BinaryFieldTypes, JsonModel
+from fedoralink.tests.testserver.testapp.models import JsonModel
 from fedoralink.tests.utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
