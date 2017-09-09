@@ -46,9 +46,8 @@ def col_lookup(self, compiler, connection):
     model = self.field.model
     opts = model._meta
     connection.prepare_fedora_options(opts)
-    if not hasattr(field, 'fedora_options'):
-        if field.column == 'fedora_id':
-            return FedoraIdColumn(field), []
+    if field.column == 'fedora_id':
+        return FedoraIdColumn(field), []
     fedora_field_options = field.fedora_options
     return Column(fedora_field_options.rdf_name, fedora_field_options.search_name, field), []
 

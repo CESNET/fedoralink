@@ -80,3 +80,12 @@ class JsonModel(models.Model):
     json_single = JSONField(null=True, blank=True)
     json_multiple = FedoraField(JSONField(null=True, blank=True), multiplicity=FedoraField.ANY)
 
+
+@fedora(namespace=CESNET)
+class InheritedA(Simple):
+    a = models.CharField(max_length=10)
+
+
+@fedora(namespace=CESNET)
+class InheritedB(Simple):
+    b = models.CharField(max_length=10)

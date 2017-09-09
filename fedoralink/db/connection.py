@@ -160,7 +160,8 @@ class FedoraWithElasticConnection:
         _fields = {}
         for field in fields:
             val = None
-            if hasattr(field, 'fedora_options'):
+            # do not serialize fedora_id
+            if hasattr(field, 'fedora_options') and field.name != 'fedora_id':
                 if isinstance(field, ForeignKey):
                     field_value = getattr(obj, field.name)
                     referenced_fedora_id = getattr(field_value, 'fedora_id', None)
@@ -186,6 +187,10 @@ class FedoraWithElasticConnection:
 
         # for each field in the updated values get its representation in Fedora
         for field, model, val in compiler.query.values:
+            # do not serialize fedora id
+            if field.name == 'fedora_id':
+                continue
+
             # if there are fedora_options, we have enough information to convert the field to fedora representation,
             # otherwise use the raw value
             if hasattr(field, 'fedora_options'):

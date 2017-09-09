@@ -123,13 +123,20 @@ class SelectScanner:
             if not self.count:
                 self.eof = True
 
-        data = next(self.iter)
-        print(self, data['_source'])
-        src = data['_source']
-        mapping = self.mapping_cache[data['_type']]
-        return [
-            self.get_column_data(data, src, x, mapping) for x in self.columns
-        ]
+        try:
+            data = next(self.iter)
+            print(self, data['_source'])
+            src = data['_source']
+            mapping = self.mapping_cache[data['_type']]
+            return [
+                self.get_column_data(data, src, x, mapping) for x in self.columns
+            ]
+        except StopIteration:
+            # no result at all, if it was a count query return a row with just 0
+            if len(self.search_to_columns) == 1 and '__count' in self.search_to_columns:
+                self.eof = True
+                return [0]
+            raise
 
     def get_column_data(self, data, source, column, mapping):
         if isinstance(column[3], FedoraMetadataAnnotation):
