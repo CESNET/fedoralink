@@ -20,6 +20,7 @@ class DCObject(Model):
     # Fields in the /elements/1.1/ namespace
     title = TextField(verbose_name=_('Title'), default='')
     creator = TextField(verbose_name=_('Creator'), default='')
+    #TODO: Has to be with multiplicity
     subject = CharField(verbose_name=_('Subject'), default='', max_length=255)
     description = TextField(verbose_name=_('Description'), default='')
     publisher = CharField(verbose_name=_('Publisher'), default='', max_length=255)
