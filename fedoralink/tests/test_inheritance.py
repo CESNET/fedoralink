@@ -27,6 +27,9 @@ class TestInheritance(FedoralinkTestBase):
         self.assertEqual(o1.text, o2.text, 'The text of the stored and retrieved objects must match')
         self.assertEqual(o1.a, o2.a, 'The a field of the stored and retrieved objects must match')
 
+        self.assertTrue(isinstance(o2, InheritedA), 'Must be instance of the inherited class')
+        self.assertTrue(isinstance(o2, Simple), 'Must be instance of the parent class')
+
         o2 = Simple.objects.get(fedora_id=o1.fedora_id)
         self.assertEqual(o1.text, o2.text, 'The text of the stored and retrieved objects must match')
 
