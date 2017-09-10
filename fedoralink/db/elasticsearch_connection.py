@@ -481,6 +481,19 @@ def convert_tree_to_elastic(tree):
                 }
             }
 
+        if tree.type == 'contains' or tree.type == 'icontains':
+            lhs = tree.operands[0]
+            rhs = tree.operands[1]
+            if isinstance(rhs, Node):
+                rhs = convert_tree_to_elastic(rhs)
+
+            return {
+                'wildcard': {
+                    # in case of uppercase convert to lower ...
+                    convert_tree_to_elastic(tree.operands[0]): '*%s*' % (rhs.lower() if tree.type == 'icontains' else rhs)
+                }
+            }
+
         if tree.type == 'in':
             lhs = tree.operands[0]
             rhs = tree.operands[1]

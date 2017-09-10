@@ -60,6 +60,17 @@ def exact_lookup(self, compiler, connection):
     return Operation(self.lookup_name, lhs, rhs), []
 
 
+def contains_lookup(self, compiler, connection):
+    lhs, lhs_params = self.process_lhs(compiler, connection)
+    rhs, rhs_params = self.process_rhs(compiler, connection)
+    if lhs_params or rhs_params:
+        raise NotImplementedError('Params in lookups are not supported')
+    return Operation(self.lookup_name, lhs, rhs), []
+
+
+# TODO: for now, there is no easy way of icontains in ES, so making it the same as contains
+icontains_lookup = contains_lookup
+
 
 def in_lookup(self, compiler, connection):
     lhs, lhs_params = self.process_lhs(compiler, connection)
