@@ -52,7 +52,7 @@ def col_lookup(self, compiler, connection):
     return Column(fedora_field_options.rdf_name, fedora_field_options.search_name, field), []
 
 
-def exact_lookup(self, compiler, connection):
+def _generic_lookup(self, compiler, connection):
     lhs, lhs_params = self.process_lhs(compiler, connection)
     rhs, rhs_params = self.process_rhs(compiler, connection)
     if lhs_params or rhs_params:
@@ -60,16 +60,16 @@ def exact_lookup(self, compiler, connection):
     return Operation(self.lookup_name, lhs, rhs), []
 
 
-def contains_lookup(self, compiler, connection):
-    lhs, lhs_params = self.process_lhs(compiler, connection)
-    rhs, rhs_params = self.process_rhs(compiler, connection)
-    if lhs_params or rhs_params:
-        raise NotImplementedError('Params in lookups are not supported')
-    return Operation(self.lookup_name, lhs, rhs), []
+exact_lookup        = _generic_lookup
 
 
 # TODO: for now, there is no easy way of icontains in ES, so making it the same as contains
-icontains_lookup = contains_lookup
+contains_lookup     = _generic_lookup
+icontains_lookup    = _generic_lookup
+
+# TODO: for now, there is no easy way of istartswith in ES, so making it the same as startswith
+startswith_lookup   = _generic_lookup
+istartswith_lookup  = _generic_lookup
 
 
 def in_lookup(self, compiler, connection):
