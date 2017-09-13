@@ -8,7 +8,7 @@ import django.db.models as django_fields
 import elasticsearch.helpers
 from django.db.models import Count
 from django.db.models.expressions import Col
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, NotFoundError
 
 from fedoralink.db.lookups import get_column_ids, Operation, Column, Node
 from fedoralink.db.queries import SearchQuery, SelectScanner
@@ -134,11 +134,14 @@ class ElasticsearchConnection(object):
 
         # doc_type is a primary rdf type
         doc_type = rdf2search(django_model._meta.fedora_options.primary_rdf_type)
-
         fields = django_model._meta.fields
-        mapping = self.elasticsearch.indices.get_mapping(index=self.elasticsearch_index_name,
-                                                         doc_type=doc_type)
-        # default if the mapping does not exists yet
+        try:
+            mapping = self.elasticsearch.indices.get_mapping(index=self.elasticsearch_index_name,
+                                                             doc_type=doc_type)
+        except NotFoundError:
+            # default if the mapping does not exists yet
+            mapping = {}
+
         mapping = mapping.get(
             self.elasticsearch_index_name,
             {
