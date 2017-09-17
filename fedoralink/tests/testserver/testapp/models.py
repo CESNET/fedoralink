@@ -95,4 +95,4 @@ class InheritedB(Simple):
 @fedora(namespace=ACL, rdf_types=(ACL.Authorization,))
 class DifferentNamespace(models.Model):
     a = models.CharField(max_length=10)
-    b = FedoraField(models.CharField(max_length=10), rdf_name=DC.b)
+    b = FedoraField(models.CharField(max_length=10), rdf_name=DC.c, rdf_namespace=DC)

@@ -34,8 +34,23 @@ class TestDifferentNamespace(FedoralinkTestBase):
 
         # check fields are in the correct namespaces
         self.assertEqual(str(meta[ACL.a][0]), 'a')
-        self.assertEqual(str(meta[DC.b][0]), 'b')
+        self.assertEqual(str(meta[DC.c][0]), 'b')
 
         # check class has the correct rdf type
         rdf_types = meta[RDF.type]
         self.assertIn(ACL.Authorization, rdf_types)
+
+        # assert correct name(space) on the fedora_options
+        fedora_options = DifferentNamespace._meta.fedora_options
+        self.assertEquals(fedora_options.primary_rdf_type, ACL.Authorization)
+        self.assertIn(ACL.Authorization, fedora_options.rdf_types)
+        self.assertEquals(fedora_options.rdf_namespace, ACL)
+
+        # assert correct name(space) on fields
+        a = DifferentNamespace._meta.get_field('a')
+        self.assertEquals(a.fedora_options.rdf_name, ACL.a)
+        self.assertEquals(a.fedora_options.rdf_namespace, ACL)
+
+        b = DifferentNamespace._meta.get_field('b')
+        self.assertEquals(b.fedora_options.rdf_name, DC.c)
+        self.assertEquals(b.fedora_options.rdf_namespace, DC)
