@@ -26,13 +26,27 @@ class Column(Node):
         self.django_field = django_field
 
 
-class Operation(Node):
-    def __init__(self, type, *operands):
-        self.type = type
-        self.operands = list(operands)
+class Operation(Node, str):
+    def __new__(cls, operation_type, *operands):
+        return str.__new__(cls, '%s[%s]' % (operation_type, operands))
+
+    def __init__(self, operation_type, *operands):
+        super().__init__()
+        if isinstance(operation_type, Operation):
+            # copy constructor
+            self.operation_type = operation_type.operation_type
+            self.operands = operation_type.operands
+        else:
+            self.operation_type = operation_type
+            self.operands = list(operands)
 
     def join(self, arr):
         self.operands.extend(arr)
+        return self
+
+    def __str__(self):
+        # sometimes django casts an instance of operation to string - this is to prevent the casting
+        # so that we do not have to override a lot of django code and remove the str(...)
         return self
 
 

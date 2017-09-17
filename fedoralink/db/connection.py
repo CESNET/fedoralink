@@ -67,7 +67,9 @@ class FedoraWithElasticConnection:
             log.warning('Creating index is not supported on Fedora, ignoring')
         elif isinstance(query, str) and re.search(u'ALTER TABLE .* ADD CONSTRAINT .* FOREIGN KEY (.*) REFERENCES .* (.*)', query):
             log.warning('Foreign key constraint is not supported on Fedora, ignoring')
-        elif isinstance(query, Operation) and query.type == 'add_field':
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* ALTER COLUMN .* DROP DEFAULT', query):
+            log.warning('Dropping default is not supported on Fedora, ignoring')
+        elif isinstance(query, Operation) and query.operation_type == 'add_field':
             field_definition = query.operands[0]['definition']
             self.elasticsearch_connection.update_elasticsearch_index(field_definition['model'],
                                                                      field_definition['field'])

@@ -92,9 +92,13 @@ class NotCast(object):
     def __mod__(self, other):
         return Operation('not', other)
 
+
 class AddFieldSql(object):
     def __mod__(self, other):
         return Operation('add_field', other)
+
+    def __str__(self):
+        return self
 
 
 class FedoraDatabaseOperations(BaseDatabaseOperations):

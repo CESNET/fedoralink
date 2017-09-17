@@ -171,8 +171,7 @@ class ElasticsearchConnection(object):
         for fld in fields_names:
             if fld in mapping:
                 if fld not in new_mapping:
-                    raise IndexMappingError(
-                        'Field removal not yet supported in elasticsearch - about to remove %s' % fld)
+                    log.error('Field removal not yet supported in elasticsearch - about to remove %s', fld)
                 else:
                     # compare and raise exception
                     if json.dumps(mapping[fld], sort_keys=True) != json.dumps(new_mapping[fld], sort_keys=True):
@@ -454,7 +453,7 @@ class ElasticsearchConnection(object):
 
 def convert_tree_to_elastic(tree):
     if isinstance(tree, Operation):
-        if tree.type == 'AND':
+        if tree.operation_type == 'AND':
             return {
                 'bool': {
                     'must': [
@@ -462,7 +461,7 @@ def convert_tree_to_elastic(tree):
                     ]
                 }
             }
-        if tree.type == 'OR':
+        if tree.operation_type == 'OR':
             return {
                 'bool': {
                     'should': [
@@ -471,7 +470,7 @@ def convert_tree_to_elastic(tree):
                     'minimum_should_match': 1
                 }
             }
-        if tree.type == 'exact':
+        if tree.operation_type == 'exact':
             lhs = tree.operands[0]
             rhs = tree.operands[1]
             if isinstance(rhs, Node):
@@ -491,7 +490,7 @@ def convert_tree_to_elastic(tree):
                 }
             }
 
-        if tree.type == 'contains' or tree.type == 'icontains':
+        if tree.operation_type == 'contains' or tree.operation_type == 'icontains':
             lhs = tree.operands[0]
             rhs = tree.operands[1]
             if isinstance(rhs, Node):
@@ -500,11 +499,11 @@ def convert_tree_to_elastic(tree):
             return {
                 'wildcard': {
                     # in case of uppercase convert to lower ...
-                    convert_tree_to_elastic(tree.operands[0]): '*%s*' % (rhs.lower() if tree.type == 'icontains' else rhs)
+                    convert_tree_to_elastic(tree.operands[0]): '*%s*' % (rhs.lower() if tree.operation_type == 'icontains' else rhs)
                 }
             }
 
-        if tree.type == 'startswith' or tree.type == 'istartswith':
+        if tree.operation_type == 'startswith' or tree.operation_type == 'istartswith':
             lhs = tree.operands[0]
             rhs = tree.operands[1]
             if isinstance(rhs, Node):
@@ -513,11 +512,11 @@ def convert_tree_to_elastic(tree):
             return {
                 'prefix': {
                     # in case of uppercase convert to lower ...
-                    convert_tree_to_elastic(tree.operands[0]): (rhs.lower() if tree.type == 'istartswith' else rhs)
+                    convert_tree_to_elastic(tree.operands[0]): (rhs.lower() if tree.operation_type == 'istartswith' else rhs)
                 }
             }
 
-        if tree.type == 'in':
+        if tree.operation_type == 'in':
             lhs = tree.operands[0]
             rhs = tree.operands[1]
             if isinstance(rhs, Node):
@@ -536,7 +535,7 @@ def convert_tree_to_elastic(tree):
                 }
             }
 
-        raise NotImplementedError('Conversion of operation type %s to elasticsearch not yet implemented' % tree.type)
+        raise NotImplementedError('Conversion of operation type %s to elasticsearch not yet implemented' % tree.operation_type)
     elif isinstance(tree, Column):
         return tree.search_name
     else:
