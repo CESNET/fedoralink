@@ -11,7 +11,7 @@ from rdflib import URIRef, RDF, Literal
 from rdflib.term import Identifier
 
 from fedoralink.db.binary import FedoraBinaryStream
-from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation
+from fedoralink.db.lookups import FedoraIdColumn, FedoraMetadataAnnotation, Operation
 from fedoralink.db.queries import SearchQuery, InsertQuery, InsertScanner, FedoraQueryByPk, FedoraUpdateQuery
 from fedoralink.db.utils import rdf2search
 from fedoralink.idmapping import url2id, id2url
@@ -40,7 +40,7 @@ class FedoraWithElasticConnection:
     def execute_insert(self, query):
         ids = self.fedora_connection.create_resources(query)
         self.elasticsearch_connection.index_resources(query, ids)
-        return InsertScanner([[url2id(object_id) for object_id in ids]])
+        return InsertScanner([[url2id(object_id)] for object_id in ids])
 
     def execute_update(self, query):
         self.fedora_connection.update(query)
@@ -59,6 +59,19 @@ class FedoraWithElasticConnection:
             return self.execute_update(query)
         elif isinstance(query, str) and re.search(u'ALTER TABLE .* ADD CONSTRAINT.* UNIQUE', query):
             log.warning('Adding unique constraints is not supported on Fedora, ignoring')
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* ALTER COLUMN .* DROP NOT NULL', query):
+            pass
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* DROP COLUMN .*( CASCADE)?', query):
+            log.warning('Dropping columns is not supported on Fedora, ignoring')
+        elif isinstance(query, str) and re.search(u'CREATE INDEX .*', query):
+            log.warning('Creating index is not supported on Fedora, ignoring')
+        elif isinstance(query, str) and re.search(u'ALTER TABLE .* ADD CONSTRAINT .* FOREIGN KEY (.*) REFERENCES .* (.*)', query):
+            log.warning('Foreign key constraint is not supported on Fedora, ignoring')
+        elif isinstance(query, Operation) and query.type == 'add_field':
+            field_definition = query.operands[0]['definition']
+            self.elasticsearch_connection.update_elasticsearch_index(field_definition['model'],
+                                                                     field_definition['field'])
+            return
         else:
             raise NotImplementedError('Query of type %s is not yet implemented: %s' % (type(query), query))
 

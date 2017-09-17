@@ -92,6 +92,10 @@ class NotCast(object):
     def __mod__(self, other):
         return Operation('not', other)
 
+class AddFieldSql(object):
+    def __mod__(self, other):
+        return Operation('add_field', other)
+
 
 class FedoraDatabaseOperations(BaseDatabaseOperations):
     compiler_module = "fedoralink.db.compiler"
@@ -176,6 +180,14 @@ class FedoraDatabaseOperations(BaseDatabaseOperations):
             value = json.loads(value)
         return value
 
+    def fetch_returned_insert_ids(self, cursor):
+        """
+        Given a cursor object that has just performed an INSERT...RETURNING
+        statement into a table that has an auto-incrementing ID, return the
+        list of newly created IDs.
+        """
+        return [item[0] for item in cursor.fetchall()]
+
 
 class DatabaseValidation(BaseDatabaseValidation):
     pass
@@ -239,12 +251,53 @@ class FedoraSchemaEditor(BaseDatabaseSchemaEditor):
         with self.connection.cursor() as cursor:
             cursor.connection.create_model(model)
 
+    @property
+    def sql_create_column(self):
+        return AddFieldSql()
+
+    def column_sql(self, model, field, include_default=False):
+        return {
+            'model': model,
+            'field': field,
+            'include_default': include_default
+        }, []
+
 
 class DatabaseWrapper(BaseDatabaseWrapper):
     vendor = 'fedoralink'
 
     Database = FedoraDatabase
     SchemaEditorClass = FedoraSchemaEditor
+
+    # taken from postgresql
+    data_types = {
+        'AutoField': 'serial',
+        'BigAutoField': 'bigserial',
+        'BinaryField': 'bytea',
+        'BooleanField': 'boolean',
+        'CharField': 'varchar',
+        'CommaSeparatedIntegerField': 'varchar',
+        'DateField': 'date',
+        'DateTimeField': 'timestamp with time zone',
+        'DecimalField': 'numeric',
+        'DurationField': 'interval',
+        'FileField': 'varchar',
+        'FilePathField': 'varchar',
+        'FloatField': 'double precision',
+        'IntegerField': 'integer',
+        'BigIntegerField': 'bigint',
+        'IPAddressField': 'inet',
+        'GenericIPAddressField': 'inet',
+        'NullBooleanField': 'boolean',
+        'OneToOneField': 'integer',
+        'PositiveIntegerField': 'integer',
+        'PositiveSmallIntegerField': 'smallint',
+        'SlugField': 'varchar',
+        'SmallIntegerField': 'smallint',
+        'TextField': 'text',
+        'TimeField': 'time',
+        'UUIDField': 'uuid',
+    }
 
     operators = {
         'exact': '= %s',

@@ -130,12 +130,22 @@ class ElasticsearchConnection(object):
     def refresh(self):
         self.elasticsearch.indices.refresh(index=self.elasticsearch_index_name)
 
-    def update_elasticsearch_index(self, django_model):
+    def update_elasticsearch_index(self, django_model, django_field=None):
 
         # doc_type is a primary rdf type
-        doc_type = rdf2search(django_model._meta.fedora_options.primary_rdf_type)
+        django_model_meta = django_model._meta
 
-        fields = django_model._meta.fields
+        model_fedora_options = getattr(django_model_meta, 'fedora_options', None)
+        if not model_fedora_options:
+            log.error('Do not have fedora options, why am I here?')
+            return
+
+        doc_type = rdf2search(model_fedora_options.primary_rdf_type)
+
+        fields = django_model_meta.fields
+        if django_field:
+            fields = list(fields) + [django_field]
+
         mapping = self.elasticsearch.indices.get_mapping(index=self.elasticsearch_index_name,
                                                          doc_type=doc_type)
         # default if the mapping does not exists yet
