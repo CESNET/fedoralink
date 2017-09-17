@@ -1,6 +1,7 @@
 from django.db import models
 
-from fedoralink.fedorans import CESNET
+from fedoralink.fedorans import CESNET, ACL
+from rdflib.namespace import DC
 from fedoralink.models import fedora
 from fedoralink.fields import FedoraField, JSONField
 
@@ -89,3 +90,9 @@ class InheritedA(Simple):
 @fedora(namespace=CESNET)
 class InheritedB(Simple):
     b = models.CharField(max_length=10)
+
+
+@fedora(namespace=ACL, rdf_types=(ACL.Authorization,))
+class DifferentNamespace(models.Model):
+    a = models.CharField(max_length=10)
+    b = FedoraField(models.CharField(max_length=10), rdf_name=DC.b)
