@@ -286,7 +286,9 @@ class ElasticsearchConnection(object):
                 }
             elif isinstance(fld, JSONField):
                 field_mapping = {
-                    'type': 'keyword',
+                    'type': 'object',
+                    'enabled': False,               # prevent indexing on json fields as they are large
+                    'include_in_all': False
                 }
             else:
                 raise IndexMappingError('Field type %s (on field %s) is not supported' % (type(fld), name))
