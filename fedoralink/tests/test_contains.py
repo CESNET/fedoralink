@@ -4,7 +4,7 @@ django.setup()
 import logging
 import unittest.util
 
-from fedoralink.tests.testserver.testapp.models import InheritedA, Simple, InheritedB
+from fedoralink.tests.testserver.testapp.models import InheritedA, Simple, InheritedB, ModelWithForeignKeyArray
 from fedoralink.tests.utils import FedoralinkTestBase
 
 logging.basicConfig(level=logging.DEBUG)
@@ -38,3 +38,8 @@ class TestContains(FedoralinkTestBase):
         self.assertEqual(2, Simple.objects.filter(text__contains='a').count())
         self.assertEqual(2, Simple.objects.filter(text__contains='b').count())
         self.assertEqual(1, Simple.objects.filter(text__contains='c').count())
+
+        # test contains on array fields referencing another models (issue #9)
+        o4 = ModelWithForeignKeyArray.objects.create(f=[o1,o2])
+        self.assertEqual(1, ModelWithForeignKeyArray.objects.filter(f=[o1]).count())
+        self.assertEqual(0, ModelWithForeignKeyArray.objects.filter(f=[o3]).count())

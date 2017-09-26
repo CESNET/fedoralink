@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User, Group
-from django.db.models import ForeignKey, SET_NULL, CharField, TextField, Model
+from django.db.models import ForeignKey, SET_NULL, CharField, Model
 from django.utils.translation import ugettext_lazy as _
 from model_utils import Choices
 
@@ -13,7 +13,7 @@ from fedoralink.models import fedora, FedoraObject
 @fedora(namespace=ACL, rdf_types=(ACL.Authorization,))
 class Authorization(Model):
     ACL_PERMISSIONS = Choices(('http://www.w3.org/ns/auth/acl#Read', 'READ', 'Read'),
-                       ('http://www.w3.org/ns/auth/acl#Write', 'WRITE', 'Write'))
+                              ('http://www.w3.org/ns/auth/acl#Write', 'WRITE', 'Write'))
 
     agent = FedoraField(CharField(null=True, max_length=512,
                                   verbose_name=_('People allowed to access a resource')),
