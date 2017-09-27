@@ -96,3 +96,4 @@ class InheritedB(Simple):
 class DifferentNamespace(models.Model):
     a = models.CharField(max_length=10)
     b = FedoraField(models.CharField(max_length=10), rdf_name=DC.c, rdf_namespace=DC)
+    c = FedoraField(models.CharField(max_length=10))
