@@ -6,7 +6,7 @@ from random import random
 import cachetools
 import django.db.models as django_fields
 import elasticsearch.helpers
-from django.db.models import Count
+from django.db.models import Count, Model
 from django.db.models.expressions import Col
 from elasticsearch import Elasticsearch, NotFoundError
 
@@ -388,7 +388,7 @@ class ElasticsearchConnection(object):
             },
             'sort': sort_by
         }
-        print(json.dumps(elastic_query, indent=4))
+#        print(json.dumps(elastic_query, indent=4))
 
         return SearchQuery(elastic_query, get_column_ids(compiler.select, add_count),
                            compiler.query.low_mark, compiler.query.high_mark,

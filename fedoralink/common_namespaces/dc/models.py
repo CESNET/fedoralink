@@ -2,6 +2,7 @@ from django.db.models import Model, TextField, CharField
 from rdflib.namespace import DC, DCTERMS
 from django.utils.translation import ugettext_lazy as _
 
+from fedoralink.fedorans import CESNET
 from fedoralink.fields import FedoraField
 from fedoralink.models import fedora
 
@@ -16,6 +17,10 @@ class DCObject(Model):
     _dcmitypes = ('Collection', 'Dataset', 'Event', 'Image', 'InteractiveResource',
                  'Service', 'Software', 'Sound', 'Text', 'PhysicalObject')
     _dcmitypes = [(x, x) for x in _dcmitypes]
+
+    _handle = FedoraField(CharField(verbose_name='CESNET unique persistent object handle',
+                                    null=True, max_length=255, unique=True),
+                          rdf_namespace=CESNET, rdf_name=CESNET._handle)
 
     # Fields according to http://dublincore.org/documents/2012/06/14/dcmi-terms/ specification
     #
