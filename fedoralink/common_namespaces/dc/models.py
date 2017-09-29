@@ -1,6 +1,8 @@
 from django.db.models import Model, TextField, CharField
-from rdflib.namespace import DC
+from rdflib.namespace import DC, DCTERMS
 from django.utils.translation import ugettext_lazy as _
+
+from fedoralink.fields import FedoraField
 from fedoralink.models import fedora
 
 
@@ -20,74 +22,132 @@ class DCObject(Model):
     # Fields in the /elements/1.1/ namespace
     title = TextField(verbose_name=_('Title'), default='')
     creator = TextField(verbose_name=_('Creator'), default='')
-    #TODO: Has to be with multiplicity
-    subject = CharField(verbose_name=_('Subject'), default='', max_length=255)
+    subject = FedoraField(CharField(verbose_name=_('Subject'), default='', max_length=255),
+                          multiplicity=FedoraField.ANY, rdf_namespace=DC, rdf_name=DC.subject)
     description = TextField(verbose_name=_('Description'), default='')
     publisher = CharField(verbose_name=_('Publisher'), default='', max_length=255)
-    contributor = CharField(verbose_name=_('Contributor'), default='', max_length=255)
+    contributor = FedoraField(CharField(verbose_name=_('Contributor'), default='', max_length=255),
+                              multiplicity=FedoraField.ANY, rdf_namespace=DC, rdf_name=DC.contributor)
     date = CharField(verbose_name=_('Date'), default='', max_length=128)
     type = CharField(verbose_name=_('Type'), choices=_dcmitypes, default='Text', max_length=20)
     dformat = TextField(verbose_name=_('Format'), default='')
     identifier = CharField(verbose_name=_('Identifier'), max_length=255, default='')
     source = CharField(verbose_name=_('Source'), max_length=255)
-    language = CharField(verbose_name=_('Language'), max_length=128)
+    language = FedoraField(CharField(verbose_name=_('Language'), max_length=128),
+                           multiplicity=FedoraField.ANY, rdf_namespace=DC, rdf_name=DC.language)
     relation = TextField(verbose_name=_('Relation'), default='')
     coverage = CharField(verbose_name=_('Coverage'), default='', max_length=255)
-    rights = TextField(verbose_name=_('Rights'), default='')
+    rights = FedoraField(TextField(verbose_name=_('Rights'), default=''),
+                         multiplicity=FedoraField.ANY, rdf_namespace=DC, rdf_name=DC.rights)
 
     # Fields in the /terms/ namespace
-    abstract = TextField(verbose_name=_('Abstract'), default='')
-    accessRights = CharField(max_length=255, default='')
-    accrualMethod = CharField(max_length=255, default='')
-    accrualPeriodicity = CharField(max_length=128, default='')
-    accrualPolicy = CharField(max_length=255, default='')
-    alternative = TextField(verbose_name=_('Alternative'), default='')
-    audience = CharField(verbose_name=_('Audience'), max_length=255, default='')
-    available = CharField(verbose_name=_('Available'), max_length=128, default='')
-    bibliographicCitation = TextField(verbose_name=_('Bibliography'), default='')
-    conformsTo = CharField(max_length=255, default='')
-    #contributor = CharField(verbose_name=_('Contributor'), default='') # TODO: Already in elements ns, distinguish by ns
-    #coverage = CharField(verbose_name=_('Coverage'), default='') #Recommended best practice is to use a controlled vocabulary such as the Thesaurus of Geographic Names [TGN], TODO: Already in elements ns, distinguish by ns
-    created = CharField(verbose_name=_('Created'), max_length=128, default='')
-    #creator = TextField(verbose_name=_('Creator'), default='') # TODO: Already in elements ns, distinguish by ns
-    #date = CharField(verbose_name=_('Date'), max_length=128, default='') # TODO: Already in elements ns, distinguish by ns
-    dateAccepted = CharField(verbose_name=_('Accepted'), max_length=128, default='')
-    dateCopyrighted = CharField(verbose_name=_('Copyrighted'), max_length=128, default='')
-    dateSubmitted = CharField(verbose_name=_('Submitted'), max_length=128, default='')
-    #description = TextField(verbose_name=_('Description'), default='') # TODO: Already in elements ns, distinguish by ns
-    educationLevel = CharField(verbose_name=_('Submitted'), max_length=225, default='')
-    extent = CharField(verbose_name=_('Extent'), max_length=225, default='')
-    dformat = CharField(verbose_name=_('Format'), max_length=225, default='') # Recommended best practice is to use a controlled vocabulary such as the list of Internet Media Types [MIME]. TODO: Already in elements ns, distinguish by ns
-    hasFormat = CharField(max_length=225, default='')
-    hasPart = CharField(max_length=225, default='')
-    hasVersion = CharField(max_length=225, default='')
-    #identifier = CharField(verbose_name=_('Identifier'), max_length=225, default='') # TODO: Already in elements ns, distinguish by ns
-    instructionalMethod = TextField(default='')
-    isFormatOf = CharField(max_length=225, default='')
-    isPartOf = CharField(max_length=225, default='')
-    isReferencedBy = CharField(max_length=225, default='')
-    isReplacedBy = CharField(max_length=225, default='')
-    isRequiredBy = CharField(max_length=225, default='')
-    issued = CharField(verbose_name=_('Issued'), max_length=128, default='')
-    isVersionOf = CharField(max_length=225, default='')
-    #language = CharField(verbose_name=_('Language'), max_length=128) # Recommended best practice is to use a controlled vocabulary such as RFC 4646 [RFC4646]. TODO: Already in elements ns, distinguish by ns
-    license = TextField(verbose_name=_('License'), default='')
-    mediator = CharField(verbose_name=_('Mediator'), max_length=255, default='')
-    medium = CharField(verbose_name=_('Medium'), max_length=255, default='')
-    modified = CharField(verbose_name=_('Issued'), max_length=128, default='')
-    provenance = TextField(verbose_name=_('Provenance'), default='')
-    #publisher = CharField(verbose_name=_('Publisher'), max_length=255, default='') # TODO: Already in elements ns, distinguish by ns
-    references = CharField(verbose_name=_('References'), max_length=255, default='')
-    #relation = TextField(verbose_name=_('Relation'), default='') # TODO: Already in elements ns, distinguish by ns
-    replaces = CharField(max_length=225, default='')
-    requires = CharField(max_length=225, default='')
-    #rights = TextField(verbose_name=_('Rights'), default='') # TODO: Already in elements ns, distinguish by ns
-    rightsHolder = CharField(max_length=225, default='')
-    #source = CharField(verbose_name=_('Source'), max_length=255, default='') #Recommended best practice is to identify the related resource by means of a string conforming to a formal identification system. TODO: Already in elements ns, distinguish by ns
-    spatial = TextField(verbose_name=_('Spatial'), default='')
-    #subject = CharField(verbose_name=_('Subject'), max_length=255, default='') #Recommended best practice is to use a controlled vocabulary. TODO: Already in elements ns, distinguish by ns
-    tableOfContents = TextField(verbose_name=_('TableOfContents'), default='')
-    temporal = TextField(verbose_name=_('Temporal'), default='')
-    #title = TextField(verbose_name=_('Title'), default='') # TODO: Already in elements ns, distinguish by ns
-    #type = CharField(verbose_name=_('Type'), max_length=128) # Recommended best practice is to use a controlled vocabulary such as the DCMI Type Vocabulary [DCMITYPE] TODO: Already in elements ns, distinguish by ns
-    valid = CharField(verbose_name=_('Valid'), max_length=128, default='')
+    abstract = FedoraField(TextField(verbose_name=_('Abstract'), default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.abstract)
+    accessRights = FedoraField(CharField(max_length=255, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.accessRights)
+    accrualMethod = FedoraField(CharField(max_length=255, default=''),
+                                rdf_namespace=DCTERMS, rdf_name=DCTERMS.accrualMethod)
+    accrualPeriodicity = FedoraField(CharField(max_length=128, default=''),
+                                     rdf_namespace = DCTERMS, rdf_name = DCTERMS.accrualPeriodicity)
+    accrualPolicy = FedoraField(CharField(max_length=255, default=''),
+                                rdf_namespace=DCTERMS, rdf_name=DCTERMS.accrualPolicy)
+    alternative = FedoraField(TextField(verbose_name=_('Alternative'), default=''),
+                              rdf_namespace=DCTERMS, rdf_name=DCTERMS.alternative)
+    audience = FedoraField(CharField(verbose_name=_('Audience'), max_length=255, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.audience)
+    available = FedoraField(CharField(verbose_name=_('Available'), max_length=128, default=''),
+                            rdf_namespace=DCTERMS, rdf_name=DCTERMS.available)
+    bibliographicCitation = FedoraField(TextField(verbose_name=_('Bibliography'), default=''),
+                                        rdf_namespace=DCTERMS, rdf_name=DCTERMS.bibliographicCitation)
+    conformsTo = FedoraField(CharField(max_length=255, default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.conformsTo)
+    contributor_term = FedoraField(CharField(verbose_name=_('Contributor'), default='', max_length=255),
+                                   rdf_namespace=DCTERMS, rdf_name=DCTERMS.contributor)
+    coverage_term = FedoraField(CharField(verbose_name=_('Coverage'), default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.coverage)  #Recommended best practice is to use a controlled vocabulary such as the Thesaurus of Geographic Names [TGN]
+    created = FedoraField(CharField(verbose_name=_('Created'), max_length=128, default=''),
+                          rdf_namespace=DCTERMS, rdf_name=DCTERMS.created)
+    creator_term = FedoraField(TextField(verbose_name=_('Creator'), default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.creator)
+    date_term = FedoraField(CharField(verbose_name=_('Date'), max_length=128, default=''),
+                            rdf_namespace=DCTERMS, rdf_name=DCTERMS.date)
+    dateAccepted = FedoraField(CharField(verbose_name=_('Accepted'), max_length=128, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.dateAccepted)
+    dateCopyrighted = FedoraField(CharField(verbose_name=_('Copyrighted'), max_length=128, default=''),
+                                  rdf_namespace=DCTERMS, rdf_name=DCTERMS.dateCopyrighted)
+    dateSubmitted = FedoraField(CharField(verbose_name=_('Submitted'), max_length=128, default=''),
+                                rdf_namespace=DCTERMS, rdf_name=DCTERMS.dateSubmitted)
+    description_term = FedoraField(TextField(verbose_name=_('Description'), default=''),
+                                   rdf_namespace=DCTERMS, rdf_name=DCTERMS.description)
+    educationLevel = FedoraField(CharField(verbose_name=_('Submitted'), max_length=225, default=''),
+                                 rdf_namespace=DCTERMS, rdf_name=DCTERMS.educationLevel)
+    extent = FedoraField(CharField(verbose_name=_('Extent'), max_length=225, default=''),
+                         rdf_namespace=DCTERMS, rdf_name=DCTERMS.extent)
+    dformat_term = FedoraField(CharField(verbose_name=_('Format'), max_length=225, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.format)  # Recommended best practice is to use a controlled vocabulary such as the list of Internet Media Types [MIME]. TODO: Already in elements ns, distinguish by ns
+    hasFormat = FedoraField(CharField(max_length=225, default=''),
+                            rdf_namespace=DCTERMS, rdf_name=DCTERMS.hasFormat)
+    hasPart = FedoraField(CharField(max_length=225, default=''),
+                          rdf_namespace=DCTERMS, rdf_name=DCTERMS.hasPart)
+    hasVersion = FedoraField(CharField(max_length=225, default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.hasVersion)
+    identifier_term = FedoraField(CharField(verbose_name=_('Identifier'), max_length=225, default=''),
+                                  rdf_namespace = DCTERMS, rdf_name = DCTERMS.identifier)
+    instructionalMethod = FedoraField(TextField(default=''),
+                                      rdf_namespace=DCTERMS, rdf_name=DCTERMS.instructionalMethod)
+    isFormatOf = FedoraField(CharField(max_length=225, default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.isFormatOf)
+    isPartOf = FedoraField(CharField(max_length=225, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.isPartOf)
+    isReferencedBy = FedoraField(CharField(max_length=225, default=''),
+                                 rdf_namespace=DCTERMS, rdf_name=DCTERMS.isReferencedBy)
+    isReplacedBy = FedoraField(CharField(max_length=225, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.isReplacedBy)
+    isRequiredBy = FedoraField(CharField(max_length=225, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.isRequiredBy)
+    issued = FedoraField(CharField(verbose_name=_('Issued'), max_length=128, default=''),
+                         rdf_namespace=DCTERMS, rdf_name=DCTERMS.issued)
+    isVersionOf = FedoraField(CharField(max_length=225, default=''),
+                              rdf_namespace=DCTERMS, rdf_name=DCTERMS.isVersionOf)
+    language_term = FedoraField(CharField(verbose_name=_('Language'), max_length=128),
+                                rdf_namespace=DCTERMS, rdf_name=DCTERMS.language)  # Recommended best practice is to use a controlled vocabulary such as RFC 4646 [RFC4646].
+    license = FedoraField(TextField(verbose_name=_('License'), default=''),
+                          rdf_namespace=DCTERMS, rdf_name=DCTERMS.license)
+    mediator = FedoraField(CharField(verbose_name=_('Mediator'), max_length=255, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.mediator)
+    medium = FedoraField(CharField(verbose_name=_('Medium'), max_length=255, default=''),
+                         rdf_namespace=DCTERMS, rdf_name=DCTERMS.medium)
+    modified = FedoraField(CharField(verbose_name=_('Issued'), max_length=128, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.modified)
+    provenance = FedoraField(TextField(verbose_name=_('Provenance'), default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.provenance)
+    publisher_term = FedoraField(CharField(verbose_name=_('Publisher'), max_length=255, default=''),
+                                 rdf_namespace=DCTERMS, rdf_name=DCTERMS.publisher)
+    references = FedoraField(CharField(verbose_name=_('References'), max_length=255, default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.references)
+    relation_term = FedoraField(TextField(verbose_name=_('Relation'), default=''),
+                                rdf_namespace=DCTERMS, rdf_name=DCTERMS.relation)
+    replaces = FedoraField(CharField(max_length=225, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.replaces)
+    requires = FedoraField(CharField(max_length=225, default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.requires)
+    rights_term = FedoraField(TextField(verbose_name=_('Rights'), default=''),
+                              rdf_namespace=DCTERMS, rdf_name=DCTERMS.rights)
+    rightsHolder = FedoraField(CharField(max_length=225, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.rightsHolder)
+    source_term = FedoraField(CharField(verbose_name=_('Source'), max_length=255, default=''),
+                              rdf_namespace=DCTERMS, rdf_name=DCTERMS.source)  #Recommended best practice is to identify the related resource by means of a string conforming to a formal identification system.
+    spatial = FedoraField(TextField(verbose_name=_('Spatial'), default=''),
+                          rdf_namespace=DCTERMS, rdf_name=DCTERMS.spatial)
+    subject_term = FedoraField(CharField(verbose_name=_('Subject'), max_length=255, default=''),
+                               rdf_namespace=DCTERMS, rdf_name=DCTERMS.subject)  #Recommended best practice is to use a controlled vocabulary.
+    tableOfContents = FedoraField(TextField(verbose_name=_('TableOfContents'), default=''),
+                                  rdf_namespace=DCTERMS, rdf_name=DCTERMS.tableOfContents)
+    temporal = FedoraField(TextField(verbose_name=_('Temporal'), default=''),
+                           rdf_namespace=DCTERMS, rdf_name=DCTERMS.temporal)
+    title_term = FedoraField(TextField(verbose_name=_('Title'), default=''),
+                             rdf_namespace=DCTERMS, rdf_name=DCTERMS.title)
+    type_term = FedoraField(CharField(verbose_name=_('Type'), max_length=128),
+                            rdf_namespace=DCTERMS, rdf_name=DCTERMS.type)  # Recommended best practice is to use a controlled vocabulary such as the DCMI Type Vocabulary [DCMITYPE]
+    valid = FedoraField(CharField(verbose_name=_('Valid'), max_length=128, default=''),
+                        rdf_namespace=DCTERMS, rdf_name=DCTERMS.valid)

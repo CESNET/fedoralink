@@ -17,19 +17,25 @@ class Authorization(Model):
 
     agent = FedoraField(CharField(null=True, max_length=512,
                                   verbose_name=_('People allowed to access a resource')),
-                        multiplicity=FedoraField.ANY)
+                        multiplicity=FedoraField.ANY,
+                        rdf_name=ACL.agent, rdf_namespace=ACL)
 
     agent_class = FedoraField(CharField(null=True, max_length=512,
                                         verbose_name=_('Groups of people allowed to access a resource')),
-                              multiplicity=FedoraField.ANY)
+                              multiplicity=FedoraField.ANY,
+                              rdf_namespace=ACL)
 
     mode = FedoraField(CharField(max_length=512, choices=ACL_PERMISSIONS,
                                  verbose_name=_('Resource access mode, either acl:Read or acl:Write')),
-                       multiplicity=FedoraField.ANY)
+                       multiplicity=FedoraField.ANY,
+                       rdf_namespace=ACL)
 
     access_to = FedoraField(ForeignKey(FedoraObject, on_delete=SET_NULL, null=True,
                                        verbose_name=_('Resource to which this object applies')),
-                            multiplicity=FedoraField.ANY)
+                            multiplicity=FedoraField.ANY,
+                            rdf_namespace=ACL)
 
     access_to_class = FedoraField(CharField(max_length=512,
-        verbose_name=_('RDF class of resources to which this authorization applies')), multiplicity=FedoraField.ANY)
+                                            verbose_name=_('RDF class of resources to which this authorization applies')),
+                                  multiplicity=FedoraField.ANY,
+                                  rdf_namespace=ACL)
