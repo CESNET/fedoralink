@@ -3,7 +3,8 @@ from enum import Enum
 
 import django
 from django.core.exceptions import FieldError
-from django.db.models import QuerySet, sql, CharField, TextField, Count
+from django.db.models import QuerySet, sql, CharField, TextField, Count, AutoField
+from django.db.models.expressions import Col
 from django.db.models.manager import BaseManager
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import SINGLE
@@ -117,6 +118,12 @@ class FedoraQuery(sql.Query):
             result = [x for x in result][0][0]
 
         return result if result else 0
+
+    def build_lookup(self, lookups, lhs, rhs):
+        if isinstance(lhs, Col) and isinstance(lhs.output_field, AutoField) and (
+                isinstance(rhs, str) or isinstance(rhs, URIRef)):
+            rhs = url2id(rhs)
+        return super().build_lookup(lookups, lhs, rhs)
 
 
 class FedoraQuerySet(QuerySet):
