@@ -241,6 +241,8 @@ class FedoraWithElasticConnection:
         if isinstance(field, ForeignKey):
             if isinstance(val, int):
                 referenced_fedora_id = id2url(val)
+            elif isinstance(val, str):
+                referenced_fedora_id = val
             else:
                 referenced_fedora_id = val.fedora_id
             if referenced_fedora_id:
