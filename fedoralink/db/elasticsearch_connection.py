@@ -152,7 +152,7 @@ class ElasticsearchConnection(object):
         except NotFoundError:
             # default if the mapping does not exists yet
             mapping = {}
-            
+
         # default if the mapping does not exists yet
         mapping = mapping.get(
             self.elasticsearch_index_name,
@@ -287,7 +287,7 @@ class ElasticsearchConnection(object):
             elif isinstance(fld, JSONField):
                 field_mapping = {
                     'type': 'object',
-                    'enabled': False,               # prevent indexing on json fields as they are large
+                    'enabled': False,  # prevent indexing on json fields as they are large
                     'include_in_all': False
                 }
             else:
@@ -334,14 +334,14 @@ class ElasticsearchConnection(object):
                 order_field = order_el.expression.field
                 if order_field.primary_key:
                     sort_by.append({
-                        '_uid' : {
+                        '_uid': {
                             'order': 'desc' if order_el.descending else 'asc'
                         }
                     })
                 else:
                     order_search_name = order_field.fedora_options.search_name
                     sort_by.append({
-                        order_search_name : {
+                        order_search_name: {
                             'order': 'desc' if order_el.descending else 'asc'
                         }
                     })
@@ -388,7 +388,7 @@ class ElasticsearchConnection(object):
             },
             'sort': sort_by
         }
-#        print(json.dumps(elastic_query, indent=4))
+        #        print(json.dumps(elastic_query, indent=4))
 
         return SearchQuery(elastic_query, get_column_ids(compiler.select, add_count),
                            compiler.query.low_mark, compiler.query.high_mark,
@@ -436,7 +436,7 @@ class ElasticsearchConnection(object):
             if not obj['doc_type']:
                 continue
             serialized_object = {k[1]: self.get_serialized_value(v) for k, v in obj['fields'].items()
-                                            if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
+                                 if k[1] is not None and not isinstance(v, FedoraDatabase.Binary)}
             self.elasticsearch.index(index=self.elasticsearch_index_name,
                                      doc_type=obj['doc_type'],
                                      id=obj_id, body=serialized_object)
@@ -506,7 +506,8 @@ def convert_tree_to_elastic(tree):
             return {
                 'wildcard': {
                     # in case of uppercase convert to lower ...
-                    convert_tree_to_elastic(tree.operands[0]): '*%s*' % (rhs.lower() if tree.operation_type == 'icontains' else rhs)
+                    convert_tree_to_elastic(tree.operands[0]): '*%s*' % (
+                    rhs.lower() if tree.operation_type == 'icontains' else rhs)
                 }
             }
 
@@ -519,7 +520,8 @@ def convert_tree_to_elastic(tree):
             return {
                 'prefix': {
                     # in case of uppercase convert to lower ...
-                    convert_tree_to_elastic(tree.operands[0]): (rhs.lower() if tree.operation_type == 'istartswith' else rhs)
+                    convert_tree_to_elastic(tree.operands[0]): (
+                    rhs.lower() if tree.operation_type == 'istartswith' else rhs)
                 }
             }
 
@@ -542,7 +544,31 @@ def convert_tree_to_elastic(tree):
                 }
             }
 
-        raise NotImplementedError('Conversion of operation type %s to elasticsearch not yet implemented' % tree.operation_type)
+        if tree.operation_type == 'isnull':
+            lhs = tree.operands[0]
+            rhs = tree.operands[1]
+            if isinstance(rhs, Node):
+                rhs = convert_tree_to_elastic(rhs)
+
+            if rhs:
+                return {
+                    'bool': {
+                        'must_not': {
+                            'exists': {
+                                'field': convert_tree_to_elastic(lhs)
+                            }
+                        }
+                    }
+                }
+            else:
+                return {
+                    'exists': {
+                        'field': convert_tree_to_elastic(lhs)
+                    }
+                }
+
+        raise NotImplementedError(
+            'Conversion of operation type %s to elasticsearch not yet implemented' % tree.operation_type)
     elif isinstance(tree, Column):
         return tree.search_name
     else:

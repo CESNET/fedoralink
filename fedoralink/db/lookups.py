@@ -85,6 +85,8 @@ icontains_lookup    = _generic_lookup
 startswith_lookup   = _generic_lookup
 istartswith_lookup  = _generic_lookup
 
+isnull_lookup = _generic_lookup
+
 
 def in_lookup(self, compiler, connection):
     lhs, lhs_params = self.process_lhs(compiler, connection)
