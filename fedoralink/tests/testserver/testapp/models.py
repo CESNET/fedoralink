@@ -76,6 +76,11 @@ class ModelWithForeignKeyArray(models.Model):
                     multiplicity=FedoraField.ANY)
 
 
+@fedora(namespace=CESNET, rdf_types=[CESNET.foreign_string])
+class ModelWithStringForeignKey(models.Model):
+    f = FedoraField(models.ForeignKey('Simple', on_delete=models.SET_NULL, null=True, blank=True))
+
+
 @fedora(namespace=CESNET, rdf_types=[CESNET.json])
 class JsonModel(models.Model):
     json_single = JSONField(null=True, blank=True)
