@@ -88,7 +88,7 @@ class FedoraField(Field):
         else:
             self.base_field = base_field(**kwargs)
         self.size = multiplicity
-        self.is_array = multiplicity > 1
+        self.is_array = self.size > 1
         if self.is_array:
             self.default_validators = self.default_validators[:]
             self.default_validators.append(ArrayMaxLengthValidator(self.size))
