@@ -210,7 +210,6 @@ def value_to_rdf_literal(x):
         if isinstance(x, str):
             return Literal(x, datatype=XSD.string)
         ret = Literal(x)
-
     if not ret.datatype and not ret.language:
         raise Exception('No datatype nor language after conversion of %s<%s>' % (type(x), x))
     return ret
