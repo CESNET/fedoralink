@@ -285,7 +285,7 @@ class FedoraModelMultipleChoiceField(ModelMultipleChoiceField):
 
     def _check_values(self, value):
         try:
-            super(FedoraModelMultipleChoiceField, self)._check_values(value)
+            qs = super(FedoraModelMultipleChoiceField, self)._check_values(value)
         except ValidationError as e:
             if e.code == 'invalid_choice' and self.to_field_name == 'fedora_id':
                 # Cast fedora_id URIRef to str and check again
@@ -299,6 +299,7 @@ class FedoraModelMultipleChoiceField(ModelMultipleChoiceField):
                             params={'value': val},
                         )
                 return qs
+        return qs
 
 
 class JSONField(Field):
