@@ -14,14 +14,13 @@ pip install git+https://github.com/CESNET/fedoralink.git
 django-admin startproject testfedora
 ```
 
-### 2. Add fedoralink and testfedora into INSTALLED_APPS in settings.py:
+### 2. Add fedoralink into INSTALLED_APPS in settings.py:
 ```python
 INSTALLED_APPS += [
     'fedoralink',
-    'testfedora'
 ]
 ```
-### 3. Add repository/ies and database router into settings.py:
+### 3. Add repository/ies into settings.py:
 ```python
 DATABASES['repository'] = {
     'ENGINE'            : 'fedoralink.db',
@@ -43,7 +42,13 @@ DATABASE_ROUTERS = [
 ]
 ```
 
-### 4. To test:
+### 4. Specify a path to the Fedora Namespaces config file in settings.py:
+```python
+FEDORA_NODE_TYPES = '/etc/fcrepo/fedora-node-types.cnd'
+```
+
+
+### 5. To test:
 
 bash:
 ```bash
@@ -65,7 +70,7 @@ FedoraObject.objects.filter(fedora_id='')
 
 ```
 
-### 5. Simple operations
+### 6. Simple operations
 
 #### Create and save a fedora object
 
