@@ -1,7 +1,4 @@
-from uuid import UUID
-
 import dateutil.parser
-from django.db import models
 from rdflib import URIRef, Literal
 
 from fedoralink.db.lookups import FedoraMetadataAnnotation

@@ -9,7 +9,7 @@ from django.forms import Textarea, ModelMultipleChoiceField
 from django.utils.encoding import force_text
 from django.utils.functional import SimpleLazyObject
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
-from rdflib import Literal
+from rdflib import Literal, URIRef
 
 from fedoralink.fedora_meta import FedoraFieldOptions
 from fedoralink.utils import value_to_rdf_literal, Json
@@ -284,22 +284,9 @@ class FedoraField(Field):
 class FedoraModelMultipleChoiceField(ModelMultipleChoiceField):
 
     def _check_values(self, value):
-        try:
-            qs = super(FedoraModelMultipleChoiceField, self)._check_values(value)
-        except ValidationError as e:
-            if e.code == 'invalid_choice' and self.to_field_name == 'fedora_id':
-                # Cast fedora_id URIRef to str and check again
-                qs = self.queryset.filter(**{'fedora_id__in': value})
-                pks = set(force_text(str(getattr(o, 'fedora_id'))) for o in qs)
-                for val in value:
-                    if force_text(val) not in pks:
-                        raise ValidationError(
-                            self.error_messages['invalid_choice'],
-                            code='invalid_choice',
-                            params={'value': val},
-                        )
-                return qs
-        return qs
+        if value:
+            value = [URIRef(v) if not isinstance(v, URIRef) else v for v in value ]
+        return super(FedoraModelMultipleChoiceField, self)._check_values(value)
 
 
 class JSONField(Field):
